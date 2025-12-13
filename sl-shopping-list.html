@@ -628,6 +628,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" data-page="shopping">🛒 Shopping</button>
             <button class="nav-tab" data-page="inventory">📦 Inventory Database</button>
+            <button class="nav-tab" data-page="settings">⚙️ Settings</button>
         </div>
 
         <!-- Shopping Page -->
@@ -760,6 +761,59 @@
             <div id="inventoryContainer"></div>
         </div>
 
+        <!-- Settings Page -->
+        <div id="settings-page" class="page">
+            <div class="search-section">
+                <h2 style="margin-bottom: 20px; color: #333;">⚙️ Settings & Data Management</h2>
+                
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Storage Information</h3>
+                    <div id="storageInfo" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin: 5px 0;"><strong>Total Items:</strong> <span id="totalItems">0</span></p>
+                        <p style="margin: 5px 0;"><strong>Estimated Storage Used:</strong> <span id="storageSize">0 KB</span></p>
+                        <p style="margin: 5px 0; font-size: 0.9em; color: #666;">localStorage limit: ~5-10MB depending on browser</p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Export Your Data</h3>
+                    <p style="margin-bottom: 15px; color: #666;">Download a backup of all your items as a JSON file</p>
+                    <button onclick="exportData()" style="padding: 12px 24px; background: #00b894; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        📥 Export All Data
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Import Data</h3>
+                    <p style="margin-bottom: 15px; color: #666;">Restore from a previously exported JSON file</p>
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                    <button onclick="document.getElementById('importFile').click()" style="padding: 12px 24px; background: #0984e3; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-right: 10px;">
+                        📤 Import Data
+                    </button>
+                    <small style="color: #999;">This will merge with existing data</small>
+                </div>
+
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Clear All Data</h3>
+                    <p style="margin-bottom: 15px; color: #d63031;">⚠️ Warning: This will permanently delete all your items!</p>
+                    <button onclick="clearAllData()" style="padding: 12px 24px; background: #ff4444; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        🗑️ Clear All Data
+                    </button>
+                </div>
+
+                <div style="background: #e8eaff; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h3 style="color: #667eea; margin-top: 0;">💡 Tips to Reduce Storage Usage</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; color: #666;">
+                        <li>Use smaller images (under 500KB each)</li>
+                        <li>Compress images before uploading</li>
+                        <li>Delete old items you no longer need</li>
+                        <li>Export and backup data regularly</li>
+                        <li>Consider removing images from old inventory items</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- Edit Modal -->
         <div id="editModal" class="modal">
             <div class="modal-content">
@@ -862,7 +916,92 @@
                 if (page === 'inventory') {
                     renderInventory();
                 }
+                
+                // Update storage info if switching to settings
+                if (page === 'settings') {
+                    updateStorageInfo();
+                }
             });
+        });
+
+        // Storage management functions
+        function updateStorageInfo() {
+            const dataString = JSON.stringify(shoppingItems);
+            const sizeBytes = new Blob([dataString]).size;
+            const sizeKB = (sizeBytes / 1024).toFixed(2);
+            const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+            
+            document.getElementById('totalItems').textContent = shoppingItems.length;
+            document.getElementById('storageSize').textContent = 
+                sizeBytes > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+        }
+
+        function exportData() {
+            const dataString = JSON.stringify(shoppingItems, null, 2);
+            const blob = new Blob([dataString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sl-shopping-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('Data exported successfully!');
+        }
+
+        function clearAllData() {
+            if (confirm('Are you absolutely sure you want to delete ALL items?\n\nThis cannot be undone!\n\nConsider exporting your data first.')) {
+                if (confirm('Final confirmation: Delete everything?')) {
+                    shoppingItems = [];
+                    saveItems();
+                    renderItems();
+                    renderInventory();
+                    updateCreatorFilter();
+                    updateStorageInfo();
+                    alert('All data has been cleared.');
+                }
+            }
+        }
+
+        // Import file handler
+        document.getElementById('importFile').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    
+                    if (!Array.isArray(importedData)) {
+                        alert('Invalid file format. Please select a valid backup file.');
+                        return;
+                    }
+
+                    // Merge with existing data (avoid duplicates by ID)
+                    const existingIds = new Set(shoppingItems.map(item => item.id));
+                    const newItems = importedData.filter(item => !existingIds.has(item.id));
+                    
+                    shoppingItems = [...shoppingItems, ...newItems];
+                    
+                    if (saveItems()) {
+                        renderItems();
+                        renderInventory();
+                        updateCreatorFilter();
+                        updateStorageInfo();
+                        alert(`Successfully imported ${newItems.length} new items!`);
+                    } else {
+                        // Rollback if save failed
+                        shoppingItems = shoppingItems.filter(item => existingIds.has(item.id));
+                        alert('Import failed due to storage limits. Try removing some items first.');
+                    }
+                } catch (error) {
+                    alert('Error reading file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // Reset input
         });
 
         // Update creator filter dropdown
@@ -898,11 +1037,29 @@
         // Save items to storage
         function saveItems() {
             try {
-                localStorage.setItem('sl-shopping-items', JSON.stringify(shoppingItems));
+                const dataString = JSON.stringify(shoppingItems);
+                
+                // Check approximate size (localStorage has ~5-10MB limit)
+                const sizeMB = new Blob([dataString]).size / (1024 * 1024);
+                
+                if (sizeMB > 4) {
+                    alert('Warning: You\'re approaching storage limits (' + sizeMB.toFixed(2) + 'MB used). Consider using smaller images or removing old items.');
+                }
+                
+                localStorage.setItem('sl-shopping-items', dataString);
             } catch (error) {
                 console.error('Error saving items:', error);
-                alert('Failed to save items. Your data may not persist.');
+                
+                if (error.name === 'QuotaExceededError') {
+                    alert('Storage limit exceeded! Your data cannot be saved.\n\nSolutions:\n1. Delete some old items\n2. Remove images from items (edit and save without image)\n3. Export your data and start fresh\n\nTip: Use smaller image files (under 500KB each)');
+                } else {
+                    alert('Failed to save items: ' + error.message);
+                }
+                
+                // Don't throw - let the operation complete
+                return false;
             }
+            return true;
         }
 
         // Upload area functionality
@@ -952,6 +1109,13 @@
         });
 
         function handleImageFile(file) {
+            // Check file size (limit to 500KB for localStorage safety)
+            const maxSize = 500 * 1024; // 500KB
+            if (file.size > maxSize) {
+                alert('Image is too large! Please use an image smaller than 500KB to ensure data saves properly. Try compressing the image first.');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 currentImageData = e.target.result;
