@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Life Shopping Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .add-item-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8eaff;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .preview-container.active {
+            display: block;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .remove-image {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .remove-image:hover {
+            background: #cc0000;
+        }
+
+        .add-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .add-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .add-button:active {
+            transform: translateY(0);
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+        }
+
+        .item-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+
+        .item-content {
+            padding: 20px;
+        }
+
+        .item-sale-name {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .item-links {
+            margin-bottom: 15px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .link-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 8px;
+            min-width: 80px;
+        }
+
+        .link-url {
+            color: #666;
+            text-decoration: none;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .link-url:hover {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+        .delete-button {
+            width: 100%;
+            padding: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .delete-button:hover {
+            background: #cc0000;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .empty-state-text {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-tab {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .filter-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: white;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .status-wishlist {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+
+        .status-shopping {
+            background: #74b9ff;
+            color: #0984e3;
+        }
+
+        .status-purchased {
+            background: #55efc4;
+            color: #00b894;
+        }
+
+        .status-inventory {
+            background: #dfe6e9;
+            color: #2d3436;
+        }
+
+        .item-notes {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .status-button {
+            flex: 1;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .status-button:hover {
+            background: #5568d3;
+        }
+
+        .delete-button {
+            flex: 1;
+            padding: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛍️ Second Life Shopping Tracker</h1>
+            <p class="subtitle">Track your wishlist, shopping list & inventory</p>
+        </header>
+
+        <div class="add-item-section">
+            <h2 style="margin-bottom: 20px; color: #333;">Add New Item</h2>
+            
+            <div class="form-group">
+                <label for="saleName">Sale/Event Name *</label>
+                <input type="text" id="saleName" placeholder="e.g., Black Friday Sale, New Release, Mainstore Event" required>
+            </div>
+
+            <div class="form-group">
+                <label for="itemStatus">Status *</label>
+                <select id="itemStatus" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+                    <option value="wishlist">💭 Wishlist - Want to buy</option>
+                    <option value="shopping" selected>🛒 Shopping List - Planning to buy</option>
+                    <option value="purchased">✅ Purchased - Waiting for delivery</option>
+                    <option value="inventory">📦 In Inventory - Owned</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes (Optional)</label>
+                <textarea id="notes" rows="3" placeholder="Add notes, pricing info, color preferences, etc."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="mainStoreLink">Main Store Link</label>
+                <input type="url" id="mainStoreLink" placeholder="https://marketplace.secondlife.com/...">
+            </div>
+
+            <div class="form-group">
+                <label for="inWorldLink">In-World Landmark/SLURL</label>
+                <input type="text" id="inWorldLink" placeholder="secondlife://Region/128/128/23 or landmark info">
+            </div>
+
+            <div class="form-group">
+                <label>Advertisement/Product Image</label>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text">Click to upload or drag & drop an image</div>
+                    <div class="upload-hint">You can also paste an image from your clipboard (Ctrl/Cmd + V)</div>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                <div class="preview-container" id="previewContainer">
+                    <img id="previewImage" class="preview-image" alt="Preview">
+                    <button class="remove-image" id="removeImage">Remove Image</button>
+                </div>
+            </div>
+
+            <button class="add-button" id="addItemButton">Add to Shopping List</button>
+        </div>
+
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All Items (<span id="count-all">0</span>)</button>
+            <button class="filter-tab" data-filter="wishlist">💭 Wishlist (<span id="count-wishlist">0</span>)</button>
+            <button class="filter-tab" data-filter="shopping">🛒 Shopping (<span id="count-shopping">0</span>)</button>
+            <button class="filter-tab" data-filter="purchased">✅ Purchased (<span id="count-purchased">0</span>)</button>
+            <button class="filter-tab" data-filter="inventory">📦 Inventory (<span id="count-inventory">0</span>)</button>
+        </div>
+
+        <div id="itemsContainer"></div>
+    </div>
+
+    <script>
+        let currentImageData = null;
+        let shoppingItems = [];
+
+        // Load items from storage on page load
+        async function loadItems() {
+            try {
+                const result = await window.storage.get('sl-shopping-items');
+                if (result && result.value) {
+                    shoppingItems = JSON.parse(result.value);
+                    renderItems();
+                }
+            } catch (error) {
+                console.log('No saved items found or error loading:', error);
+            }
+        }
+
+        // Save items to storage
+        async function saveItems() {
+            try {
+                await window.storage.set('sl-shopping-items', JSON.stringify(shoppingItems));
+            } catch (error) {
+                console.error('Error saving items:', error);
+                alert('Failed to save items. Your data may not persist.');
+            }
+        }
+
+        // Upload area functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const removeImageBtn = document.getElementById('removeImage');
+
+        uploadArea.addEventListener('click', () => imageInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleImageFile(files[0]);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageFile(e.target.files[0]);
+            }
+        });
+
+        // Paste image from clipboard
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    handleImageFile(file);
+                    break;
+                }
+            }
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                previewImage.src = currentImageData;
+                previewContainer.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        removeImageBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentImageData = null;
+            previewImage.src = '';
+            previewContainer.classList.remove('active');
+            imageInput.value = '';
+        });
+
+        // Add item functionality
+        document.getElementById('addItemButton').addEventListener('click', async () => {
+            const saleName = document.getElementById('saleName').value.trim();
+            const mainStoreLink = document.getElementById('mainStoreLink').value.trim();
+            const inWorldLink = document.getElementById('inWorldLink').value.trim();
+            const itemStatus = document.getElementById('itemStatus').value;
+            const notes = document.getElementById('notes').value.trim();
+
+            if (!saleName) {
+                alert('Please enter a sale/event name');
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                saleName,
+                mainStoreLink,
+                inWorldLink,
+                image: currentImageData,
+                status: itemStatus,
+                notes: notes,
+                dateAdded: new Date().toISOString()
+            };
+
+            shoppingItems.unshift(newItem);
+            await saveItems();
+            renderItems();
+
+            // Clear form
+            document.getElementById('saleName').value = '';
+            document.getElementById('mainStoreLink').value = '';
+            document.getElementById('inWorldLink').value = '';
+            document.getElementById('itemStatus').value = 'shopping';
+            document.getElementById('notes').value = '';
+            currentImageData = null;
+            previewImage.src = '';
+            previewContainer.classList.remove('active');
+            imageInput.value = '';
+        });
+
+        // Render items
+        let currentFilter = 'all';
+
+        // Filter tabs functionality
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.dataset.filter;
+                renderItems();
+            });
+        });
+
+        function updateCounts() {
+            const counts = {
+                all: shoppingItems.length,
+                wishlist: shoppingItems.filter(i => i.status === 'wishlist').length,
+                shopping: shoppingItems.filter(i => i.status === 'shopping').length,
+                purchased: shoppingItems.filter(i => i.status === 'purchased').length,
+                inventory: shoppingItems.filter(i => i.status === 'inventory').length
+            };
+
+            document.getElementById('count-all').textContent = counts.all;
+            document.getElementById('count-wishlist').textContent = counts.wishlist;
+            document.getElementById('count-shopping').textContent = counts.shopping;
+            document.getElementById('count-purchased').textContent = counts.purchased;
+            document.getElementById('count-inventory').textContent = counts.inventory;
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                wishlist: '💭 Wishlist',
+                shopping: '🛒 Shopping List',
+                purchased: '✅ Purchased',
+                inventory: '📦 In Inventory'
+            };
+            return labels[status] || status;
+        }
+
+        function getNextStatus(currentStatus) {
+            const statusFlow = {
+                wishlist: 'shopping',
+                shopping: 'purchased',
+                purchased: 'inventory',
+                inventory: 'inventory'
+            };
+            return statusFlow[currentStatus];
+        }
+
+        function getNextStatusLabel(currentStatus) {
+            const labels = {
+                wishlist: 'Move to Shopping List',
+                shopping: 'Mark as Purchased',
+                purchased: 'Move to Inventory',
+                inventory: 'Already in Inventory'
+            };
+            return labels[currentStatus];
+        }
+
+        function renderItems() {
+            const container = document.getElementById('itemsContainer');
+            
+            // Filter items
+            const filteredItems = currentFilter === 'all' 
+                ? shoppingItems 
+                : shoppingItems.filter(item => item.status === currentFilter);
+
+            updateCounts();
+            
+            if (filteredItems.length === 0) {
+                const filterText = currentFilter === 'all' ? 'Your tracker is empty' : `No items in ${getStatusLabel(currentFilter)}`;
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛒</div>
+                        <div class="empty-state-text">${filterText}. Add your first item above!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="items-grid">
+                    ${filteredItems.map(item => `
+                        <div class="item-card">
+                            ${item.image ? `
+                                <img src="${item.image}" alt="${item.saleName}" class="item-image">
+                            ` : `
+                                <div class="item-image" style="display: flex; align-items: center; justify-content: center; font-size: 3em; color: #ccc;">
+                                    🖼️
+                                </div>
+                            `}
+                            <div class="item-content">
+                                <span class="status-badge status-${item.status}">${getStatusLabel(item.status)}</span>
+                                <div class="item-sale-name">${escapeHtml(item.saleName)}</div>
+                                ${item.notes ? `
+                                    <div class="item-notes">${escapeHtml(item.notes)}</div>
+                                ` : ''}
+                                <div class="item-links">
+                                    ${item.mainStoreLink ? `
+                                        <div class="link-item">
+                                            <span class="link-label">🏪 Store:</span>
+                                            <a href="${escapeHtml(item.mainStoreLink)}" target="_blank" class="link-url">${escapeHtml(item.mainStoreLink)}</a>
+                                        </div>
+                                    ` : ''}
+                                    ${item.inWorldLink ? `
+                                        <div class="link-item">
+                                            <span class="link-label">📍 In-World:</span>
+                                            <span class="link-url">${escapeHtml(item.inWorldLink)}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="item-actions">
+                                    ${item.status !== 'inventory' ? `
+                                        <button class="status-button" onclick="updateStatus(${item.id})">${getNextStatusLabel(item.status)}</button>
+                                    ` : ''}
+                                    <button class="delete-button" onclick="deleteItem(${item.id})">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function updateStatus(id) {
+            const item = shoppingItems.find(i => i.id === id);
+            if (item && item.status !== 'inventory') {
+                item.status = getNextStatus(item.status);
+                await saveItems();
+                renderItems();
+            }
+        }
+
+        async function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                shoppingItems = shoppingItems.filter(item => item.id !== id);
+                await saveItems();
+                renderItems();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load items when page loads
+        loadItems();
+    </script>
+</body>
+</html>
