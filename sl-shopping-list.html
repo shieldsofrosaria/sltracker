@@ -1050,29 +1050,12 @@
 
         async function syncToGitHub() {
             if (!useGitHub || !githubConfig.token || !githubConfig.repo) {
-                console.log('GitHub sync skipped - not configured');
                 return false;
             }
-            
-            console.log('Starting GitHub sync...', {
-                itemCount: shoppingItems.length,
-                hasImages: shoppingItems.some(item => item.image),
-                sampleItem: shoppingItems[0] ? {
-                    name: shoppingItems[0].saleName,
-                    hasImage: !!shoppingItems[0].image,
-                    imageLength: shoppingItems[0].image ? shoppingItems[0].image.length : 0
-                } : null
-            });
             
             try {
                 const dataString = JSON.stringify(shoppingItems, null, 2);
                 const content = btoa(unescape(encodeURIComponent(dataString)));
-                
-                console.log('Data prepared for GitHub:', {
-                    size: dataString.length,
-                    items: shoppingItems.length,
-                    preview: dataString.substring(0, 500) + '...'
-                });
                 
                 // Get current file SHA if it exists
                 let sha = null;
@@ -1089,7 +1072,6 @@
                 if (getResponse.ok) {
                     const fileData = await getResponse.json();
                     sha = fileData.sha;
-                    console.log('Found existing file with SHA:', sha);
                 }
                 
                 // Create or update file
@@ -1112,7 +1094,7 @@
                 );
                 
                 if (updateResponse.ok) {
-                    console.log('✅ Synced to GitHub successfully');
+                    console.log('✅ Synced to GitHub');
                     return true;
                 } else {
                     const errorText = await updateResponse.text();
@@ -1156,15 +1138,6 @@
                     if (Array.isArray(loadedData)) {
                         shoppingItems = loadedData;
                         
-                        console.log('Loaded from GitHub:', {
-                            itemCount: shoppingItems.length,
-                            hasImages: shoppingItems.some(item => item.image),
-                            firstItemHasImage: shoppingItems[0]?.image ? 'yes' : 'no'
-                        });
-                        
-                        // DON'T save to localStorage here - keep images in memory
-                        // localStorage will be updated on next user action (add/edit/delete)
-                        
                         renderItems();
                         renderInventory();
                         updateCreatorFilter();
@@ -1172,6 +1145,7 @@
                         if (showStatus) {
                             showGitHubStatus(`✅ Loaded ${shoppingItems.length} items from GitHub!`, 'success');
                         }
+                        console.log(`Loaded ${shoppingItems.length} items from GitHub`);
                     } else {
                         if (showStatus) {
                             showGitHubStatus('❌ Invalid data format in GitHub file', 'error');
@@ -1181,7 +1155,6 @@
                     if (showStatus) {
                         showGitHubStatus('No data file found on GitHub. Your next save will create it.', 'info');
                     }
-                    // Don't throw error for 404 - it's expected for new setups
                 } else {
                     if (showStatus) {
                         showGitHubStatus(`❌ Failed to load: ${response.statusText}`, 'error');
@@ -1368,46 +1341,36 @@
         // Save items to storage
         // Added parameter to control whether this is a user action or automatic
         function saveItems(isUserAction = true) {
-            console.log('saveItems called:', { isUserAction, useGitHub, itemCount: shoppingItems.length });
-            
             try {
                 const dataString = JSON.stringify(shoppingItems);
                 
                 // If using GitHub, save full data there (but only on user actions)
                 if (useGitHub && isUserAction) {
-                    console.log('Triggering GitHub sync...');
                     syncToGitHub().catch(err => {
                         console.error('GitHub sync error:', err);
-                        // Silently log error, don't bother user
                     });
                     
                     // For localStorage, save without images to save space
                     const itemsWithoutImages = shoppingItems.map(item => ({
                         ...item,
-                        image: null // Strip images from localStorage copy
+                        image: null
                     }));
                     localStorage.setItem('sl-shopping-items', JSON.stringify(itemsWithoutImages));
-                    console.log('Saved to localStorage (without images)');
                 } else if (!useGitHub) {
                     // Not using GitHub - save everything to localStorage
                     localStorage.setItem('sl-shopping-items', dataString);
-                    console.log('Saved to localStorage (with images)');
                     
                     // Only warn about size if NOT using GitHub
                     const sizeMB = new Blob([dataString]).size / (1024 * 1024);
                     if (sizeMB > 4) {
                         console.warn('Approaching localStorage limits:', sizeMB.toFixed(2) + 'MB');
-                        // Show setup prompt only once
                         if (!localStorage.getItem('github-setup-prompted')) {
                             if (confirm('You\'re approaching storage limits (' + sizeMB.toFixed(2) + 'MB used).\n\nWould you like to set up GitHub storage for unlimited space?')) {
-                                // Switch to settings tab
                                 document.querySelector('[data-page="settings"]').click();
                             }
                             localStorage.setItem('github-setup-prompted', 'true');
                         }
                     }
-                } else {
-                    console.log('Save skipped - GitHub enabled but not a user action');
                 }
                 
             } catch (error) {
@@ -1415,10 +1378,8 @@
                 
                 if (error.name === 'QuotaExceededError') {
                     if (useGitHub) {
-                        // Just silently continue - GitHub has the data
                         console.log('localStorage quota exceeded but GitHub has the data');
                     } else {
-                        // Only show error if not using GitHub
                         alert('Storage limit exceeded!\n\nPlease set up GitHub storage in Settings (⚙️ tab) for unlimited space.');
                     }
                 } else {
@@ -1521,11 +1482,6 @@
                 return;
             }
 
-            console.log('Adding item with image:', {
-                hasImage: !!currentImageData,
-                imageLength: currentImageData ? currentImageData.length : 0
-            });
-
             const now = new Date().toISOString();
             const newItem = {
                 id: Date.now(),
@@ -1543,20 +1499,7 @@
                 dateSorted: itemStatus === 'inventory' ? now : null
             };
 
-            console.log('New item created:', {
-                name: newItem.saleName,
-                hasImage: !!newItem.image,
-                imageLength: newItem.image ? newItem.image.length : 0
-            });
-
             shoppingItems.unshift(newItem);
-            
-            console.log('ShoppingItems array after adding:', {
-                totalItems: shoppingItems.length,
-                firstItemHasImage: !!shoppingItems[0].image,
-                firstItemImageLength: shoppingItems[0].image ? shoppingItems[0].image.length : 0
-            });
-            
             saveItems();
             renderItems();
             updateCreatorFilter();
@@ -1683,13 +1626,7 @@
 
             container.innerHTML = `
                 <div class="items-grid">
-                    ${filteredItems.map(item => {
-                        console.log('Rendering item:', {
-                            name: item.saleName,
-                            hasImage: !!item.image,
-                            imageStart: item.image ? item.image.substring(0, 50) : 'none'
-                        });
-                        return `
+                    ${filteredItems.map(item => `
                         <div class="item-card">
                             ${item.image ? `
                                 <img src="${item.image}" alt="${item.saleName}" class="item-image">
@@ -1750,7 +1687,7 @@
                                 </div>
                             </div>
                         </div>
-                    `}).join('')}
+                    `).join('')}
                 </div>
             `;
         }
