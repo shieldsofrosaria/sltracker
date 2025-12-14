@@ -1056,7 +1056,12 @@
             
             console.log('Starting GitHub sync...', {
                 itemCount: shoppingItems.length,
-                hasImages: shoppingItems.some(item => item.image)
+                hasImages: shoppingItems.some(item => item.image),
+                sampleItem: shoppingItems[0] ? {
+                    name: shoppingItems[0].saleName,
+                    hasImage: !!shoppingItems[0].image,
+                    imageLength: shoppingItems[0].image ? shoppingItems[0].image.length : 0
+                } : null
             });
             
             try {
@@ -1065,7 +1070,8 @@
                 
                 console.log('Data prepared for GitHub:', {
                     size: dataString.length,
-                    items: shoppingItems.length
+                    items: shoppingItems.length,
+                    preview: dataString.substring(0, 500) + '...'
                 });
                 
                 // Get current file SHA if it exists
@@ -1504,6 +1510,11 @@
                 return;
             }
 
+            console.log('Adding item with image:', {
+                hasImage: !!currentImageData,
+                imageLength: currentImageData ? currentImageData.length : 0
+            });
+
             const now = new Date().toISOString();
             const newItem = {
                 id: Date.now(),
@@ -1521,7 +1532,20 @@
                 dateSorted: itemStatus === 'inventory' ? now : null
             };
 
+            console.log('New item created:', {
+                name: newItem.saleName,
+                hasImage: !!newItem.image,
+                imageLength: newItem.image ? newItem.image.length : 0
+            });
+
             shoppingItems.unshift(newItem);
+            
+            console.log('ShoppingItems array after adding:', {
+                totalItems: shoppingItems.length,
+                firstItemHasImage: !!shoppingItems[0].image,
+                firstItemImageLength: shoppingItems[0].image ? shoppingItems[0].image.length : 0
+            });
+            
             saveItems();
             renderItems();
             updateCreatorFilter();
