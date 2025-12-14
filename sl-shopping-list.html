@@ -1332,28 +1332,33 @@
         }
 
         // Load items from storage on page load
-        async function loadItems() {
+        function loadItems() {
             try {
                 // If using GitHub, load from there FIRST (has images)
                 if (useGitHub) {
                     console.log('GitHub enabled - loading from GitHub...');
-                    try {
-                        await syncFromGitHub(false);
-                        console.log('Successfully loaded from GitHub');
-                        return; // Don't load from localStorage if GitHub worked
-                    } catch (err) {
-                        console.log('GitHub load failed, falling back to localStorage:', err);
-                    }
-                }
-                
-                // Fallback to localStorage (either no GitHub or GitHub failed)
-                const saved = localStorage.getItem('sl-shopping-items');
-                if (saved) {
-                    shoppingItems = JSON.parse(saved);
-                    renderItems();
-                    console.log('Loaded from localStorage');
+                    syncFromGitHub(false).then(() => {
+                        console.log('Successfully loaded from GitHub with images');
+                    }).catch(err => {
+                        console.log('GitHub load failed, trying localStorage:', err);
+                        // Fallback to localStorage
+                        const saved = localStorage.getItem('sl-shopping-items');
+                        if (saved) {
+                            shoppingItems = JSON.parse(saved);
+                            renderItems();
+                            console.log('Loaded from localStorage (fallback)');
+                        }
+                    });
                 } else {
-                    console.log('No data found in localStorage');
+                    // Not using GitHub - just load from localStorage
+                    const saved = localStorage.getItem('sl-shopping-items');
+                    if (saved) {
+                        shoppingItems = JSON.parse(saved);
+                        renderItems();
+                        console.log('Loaded from localStorage');
+                    } else {
+                        console.log('No data found');
+                    }
                 }
             } catch (error) {
                 console.log('Error loading items:', error);
