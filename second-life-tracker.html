@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Life Shopping Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&display=swap');
+        
+        :root {
+            /* Light mode colors */
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #e8eef5;
+            --card-bg: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border-color: #d4dde8;
+            
+            /* Dark mode purple palette */
+            --dark-bg-primary: #10002b;
+            --dark-bg-secondary: #240046;
+            --dark-purple-1: #3c096c;
+            --dark-purple-2: #5a189a;
+            --dark-purple-3: #7b2cbf;
+            --dark-purple-4: #9d4edd;
+            --dark-purple-5: #c77dff;
+            --dark-purple-6: #e0aaff;
+            --dark-gold: #ffd700;
+            --dark-gold-dim: #ffed4e;
+        }
+        
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            background: linear-gradient(to bottom, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(to bottom, var(--dark-bg-primary) 0%, var(--dark-bg-secondary) 100%);
+        }
+
+        body.dark-mode .sl-header {
+            background: linear-gradient(135deg, var(--dark-purple-2) 0%, var(--dark-purple-3) 100%);
+        }
+
+        body.dark-mode .product-card {
+            background: var(--dark-purple-1);
+            border-color: var(--dark-purple-3);
+            color: #ffffff;
+        }
+
+        body.dark-mode .product-card:hover {
+            border-color: var(--dark-gold);
+        }
+
+        body.dark-mode .tab-active {
+            background: var(--dark-purple-2);
+            color: var(--dark-gold);
+            border-bottom-color: var(--dark-gold);
+        }
+
+        body.dark-mode .tab-inactive {
+            background: var(--dark-bg-secondary);
+            color: var(--dark-purple-6);
+        }
+
+        body.dark-mode .tab-inactive:hover {
+            background: var(--dark-purple-1);
+        }
+
+        body.dark-mode .input-field {
+            background: var(--dark-bg-primary);
+            border-color: var(--dark-purple-3);
+            color: #ffffff;
+        }
+
+        body.dark-mode .input-field:focus {
+            border-color: var(--dark-gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+        }
+
+        body.dark-mode .input-field::placeholder {
+            color: var(--dark-purple-6);
+        }
+
+        body.dark-mode .tag-chip {
+            background: var(--dark-purple-2);
+            color: var(--dark-purple-6);
+            border-color: var(--dark-purple-4);
+        }
+
+        body.dark-mode h1,
+        body.dark-mode h2,
+        body.dark-mode h3,
+        body.dark-mode label {
+            color: #ffffff;
+        }
+
+        body.dark-mode .text-gray-800 {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .text-gray-700 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode .text-gray-600 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode .text-gray-500 {
+            color: var(--dark-purple-5) !important;
+        }
+
+        body.dark-mode .bg-gray-50 {
+            background: var(--dark-bg-secondary) !important;
+        }
+
+        body.dark-mode .border-gray-200 {
+            border-color: var(--dark-purple-3) !important;
+        }
+
+        body.dark-mode .border-gray-300 {
+            border-color: var(--dark-purple-3) !important;
+        }
+
+        body.dark-mode .empty-state {
+            color: var(--dark-purple-6);
+        }
+
+        body.dark-mode .bg-blue-50 {
+            background: var(--dark-purple-2) !important;
+        }
+
+        body.dark-mode .text-blue-900 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode .text-blue-700 {
+            color: var(--dark-purple-5) !important;
+        }
+
+        body.dark-mode .border-blue-500 {
+            border-color: var(--dark-purple-4) !important;
+        }
+
+        body.dark-mode .bg-red-50 {
+            background: rgba(139, 0, 0, 0.2) !important;
+        }
+
+        body.dark-mode .text-red-900 {
+            color: #ff6b6b !important;
+        }
+
+        body.dark-mode .text-red-700 {
+            color: #ff8888 !important;
+        }
+
+        body.dark-mode .border-red-500 {
+            border-color: #dc2626 !important;
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: linear-gradient(135deg, var(--dark-gold) 0%, var(--dark-gold-dim) 100%);
+        }
+
+        .sl-header {
+            background: linear-gradient(135deg, #1a5490 0%, #2673b8 100%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .sl-orange-btn {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(255, 107, 26, 0.3);
+        }
+
+        .sl-orange-btn:hover {
+            background: linear-gradient(135deg, #ff6b1a 0%, #ff5500 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(255, 107, 26, 0.4);
+        }
+
+        .sl-blue-btn {
+            background: linear-gradient(135deg, #2673b8 0%, #1a5490 100%);
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .sl-blue-btn:hover {
+            background: linear-gradient(135deg, #1a5490 0%, #0f3d6f 100%);
+            transform: translateY(-1px);
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            border-color: #ff8c42;
+            transform: translateY(-2px);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .tab-active {
+            background: white;
+            color: #2673b8;
+            border-bottom: 3px solid #ff8c42;
+        }
+
+        .tab-inactive {
+            background: #e8eef5;
+            color: #666;
+        }
+
+        .tab-inactive:hover {
+            background: #d4dde8;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-⭐ {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .badge-🛒 {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #17a2b8;
+        }
+
+        .badge-✅ {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .badge-📦 {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .tag-chip {
+            display: inline-block;
+            background: #e8eef5;
+            color: #2673b8;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+            border: 1px solid #2673b8;
+        }
+
+        .input-field {
+            border: 2px solid #d4dde8;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #ff8c42;
+            box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const STATUSES = {
+            WISHLIST: '⭐ Wishlist - Want to buy',
+            SHOPPING: '🛒 Shopping List - Planning to buy',
+            PURCHASED: '✅ Purchased - Waiting for delivery',
+            INVENTORY: '📦 In Inventory - Owned'
+        };
+
+        const CATEGORIES = [
+            { name: 'Animations', icon: '💃' },
+            { name: 'Body Parts', icon: '👤' },
+            { name: 'Clothing', icon: '👗' },
+            { name: 'Creator Tools', icon: '🛠️' },
+            { name: 'EEP/Windlights', icon: '🌅' },
+            { name: 'Food & Drink', icon: '🍔' },
+            { name: 'Home & Garden', icon: '🏡' },
+            { name: 'Photography Tools', icon: '📸' },
+            { name: 'Backdrops', icon: '🎭' },
+            { name: 'Textures / Materials', icon: '🎨' },
+            { name: 'Toys', icon: '🎮' },
+            { name: 'Weapons', icon: '⚔️' },
+            { name: 'Vehicles', icon: '🚗' }
+        ];
+
+        function App() {
+            const [items, setItems] = useState([]);
+            const [activeTab, setActiveTab] = useState('wishlist');
+            const [formData, setFormData] = useState({
+                name: '',
+                store: '',
+                category: '',
+                status: STATUSES.WISHLIST,
+                tags: '',
+                notes: '',
+                link: '',
+                landmark: '',
+                image: ''
+            });
+            const [imageFile, setImageFile] = useState(null);
+            const [imagePreview, setImagePreview] = useState('');
+            const [uploading, setUploading] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [lightboxImage, setLightboxImage] = useState(null);
+            const [showAddForm, setShowAddForm] = useState(false);
+            
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterCategory, setFilterCategory] = useState('');
+            const [filterCreator, setFilterCreator] = useState('');
+            const [darkMode, setDarkMode] = useState(false);
+
+            useEffect(() => {
+                const loadData = () => {
+                    try {
+                        const saved = localStorage.getItem('sl-tracker-items');
+                        if (saved) {
+                            setItems(JSON.parse(saved));
+                        }
+                        const savedDarkMode = localStorage.getItem('sl-tracker-darkmode');
+                        if (savedDarkMode === 'true') {
+                            setDarkMode(true);
+                            document.body.classList.add('dark-mode');
+                        }
+                    } catch (error) {
+                        console.log('No existing data found');
+                    }
+                };
+                loadData();
+            }, []);
+
+            const toggleDarkMode = () => {
+                const newDarkMode = !darkMode;
+                setDarkMode(newDarkMode);
+                localStorage.setItem('sl-tracker-darkmode', newDarkMode);
+                if (newDarkMode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            };
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-items', JSON.stringify(items));
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                }
+            }, [items]);
+
+            const uploadToImgBB = async (file) => {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const response = await fetch('https://api.imgbb.com/1/upload?key=fecb6b8c48020815465bbc22d8c0e7b0', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        return data.data.url;
+                    } else {
+                        throw new Error('Upload failed');
+                    }
+                } catch (error) {
+                    console.error('ImgBB upload error:', error);
+                    return null;
+                }
+            };
+
+            const handleImageSelect = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setImageFile(file);
+                    const reader = new FileReader();
+                    reader.onload = (e) => setImagePreview(e.target.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handlePaste = (e) => {
+                const items = e.clipboardData.items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') !== -1) {
+                        const file = item.getAsFile();
+                        setImageFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (e) => setImagePreview(e.target.result);
+                        reader.readAsDataURL(file);
+                        break;
+                    }
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                
+                let imageUrl = formData.image;
+                
+                if (imageFile) {
+                    setUploading(true);
+                    imageUrl = await uploadToImgBB(imageFile);
+                    setUploading(false);
+                    
+                    if (!imageUrl) {
+                        alert('⚠️ Image upload failed. Item will be saved without image.');
+                    }
+                }
+
+                const newItem = {
+                    id: editingId || Date.now(),
+                    ...formData,
+                    image: imageUrl,
+                    createdAt: editingId ? items.find(i => i.id === editingId).createdAt : new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (editingId) {
+                    setItems(items.map(item => item.id === editingId ? newItem : item));
+                } else {
+                    setItems([...items, newItem]);
+                }
+
+                resetForm();
+            };
+
+            const resetForm = () => {
+                // Set default status based on active tab
+                let defaultStatus = STATUSES.WISHLIST;
+                if (activeTab === 'shopping') defaultStatus = STATUSES.SHOPPING;
+                if (activeTab === 'purchased') defaultStatus = STATUSES.PURCHASED;
+                
+                setFormData({
+                    name: '',
+                    store: '',
+                    category: '',
+                    status: defaultStatus,
+                    tags: '',
+                    notes: '',
+                    link: '',
+                    landmark: '',
+                    image: ''
+                });
+                setImageFile(null);
+                setImagePreview('');
+                setEditingId(null);
+                setShowEditModal(false);
+                setShowAddForm(false);
+            };
+
+            const deleteItem = (id) => {
+                if (confirm('🗑️ Are you sure you want to delete this item?')) {
+                    setItems(items.filter(item => item.id !== id));
+                }
+            };
+
+            const editItem = (item) => {
+                setFormData({
+                    name: item.name,
+                    store: item.store,
+                    category: item.category,
+                    status: item.status,
+                    tags: item.tags,
+                    notes: item.notes,
+                    link: item.link,
+                    landmark: item.landmark,
+                    image: item.image
+                });
+                setImagePreview(item.image);
+                setEditingId(item.id);
+                setShowEditModal(true);
+            };
+
+            const updateStatus = (id, newStatus) => {
+                setItems(items.map(item => 
+                    item.id === id ? { ...item, status: newStatus, updatedAt: new Date().toISOString() } : item
+                ));
+            };
+
+            const getFilteredItems = () => {
+                let statusFilter;
+                
+                switch(activeTab) {
+                    case 'wishlist':
+                        statusFilter = STATUSES.WISHLIST;
+                        break;
+                    case 'shopping':
+                        statusFilter = STATUSES.SHOPPING;
+                        break;
+                    case 'purchased':
+                        statusFilter = STATUSES.PURCHASED;
+                        break;
+                    case 'inventory':
+                        statusFilter = STATUSES.INVENTORY;
+                        break;
+                    default:
+                        return items;
+                }
+                
+                return items.filter(item => {
+                    const matchesStatus = item.status === statusFilter;
+                    
+                    if (activeTab === 'inventory') {
+                        const matchesSearch = searchTerm === '' || 
+                            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.store.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.tags.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.notes.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesCategory = filterCategory === '' || item.category === filterCategory;
+                        const matchesCreator = filterCreator === '' || item.store === filterCreator;
+                        
+                        return matchesStatus && matchesSearch && matchesCategory && matchesCreator;
+                    }
+                    
+                    return matchesStatus;
+                });
+            };
+
+            const getUniqueCreators = () => {
+                return [...new Set(items.map(item => item.store).filter(Boolean))];
+            };
+
+            const getCategoryIcon = (categoryName) => {
+                const cat = CATEGORIES.find(c => c.name === categoryName);
+                return cat ? cat.icon : '📦';
+            };
+
+            const exportData = () => {
+                const dataStr = JSON.stringify(items, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `sl-tracker-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            };
+
+            const importData = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            if (confirm('📥 This will merge with existing data. Continue?')) {
+                                setItems([...items, ...imported]);
+                            }
+                        } catch (error) {
+                            alert('❌ Invalid JSON file');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            const clearAllData = () => {
+                if (confirm('⚠️ This will permanently delete all your items! Are you sure?')) {
+                    if (confirm('🚨 This cannot be undone. Are you absolutely sure?')) {
+                        setItems([]);
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-screen pb-8">
+                    {/* Header */}
+                    <div className="sl-header text-white py-6 px-4 mb-6">
+                        <div className="max-w-7xl mx-auto">
+                            <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
+                                <span>🛍️</span>
+                                <span>Second Life Shopping Tracker</span>
+                            </h1>
+                            <p className="text-blue-100 text-lg">Track your wishlist, shopping & inventory! ✨</p>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4">
+                        {/* Navigation Tabs */}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            <button
+                                onClick={() => { setActiveTab('wishlist'); setShowAddForm(false); }}
+                                className={`tab-btn ${activeTab === 'wishlist' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                ⭐ Wishlist
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('shopping'); setShowAddForm(false); }}
+                                className={`tab-btn ${activeTab === 'shopping' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                🛒 Shopping List
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('purchased'); setShowAddForm(false); }}
+                                className={`tab-btn ${activeTab === 'purchased' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                ✅ Purchased
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('inventory'); setShowAddForm(false); }}
+                                className={`tab-btn ${activeTab === 'inventory' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                📦 Inventory
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('settings'); setShowAddForm(false); }}
+                                className={`tab-btn ${activeTab === 'settings' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                ⚙️ Settings
+                            </button>
+                        </div>
+
+                        {/* Wishlist, Shopping List, and Purchased Tabs */}
+                        {(activeTab === 'wishlist' || activeTab === 'shopping' || activeTab === 'purchased') && (
+                            <div>
+                                {/* Add New Item Button / Form */}
+                                {!showAddForm ? (
+                                    <button
+                                        onClick={() => setShowAddForm(true)}
+                                        className="w-full sl-orange-btn py-4 rounded-lg text-xl mb-6 flex items-center justify-center gap-2"
+                                    >
+                                        {activeTab === 'wishlist' && (
+                                            <>
+                                                <span>⭐</span>
+                                                <span>Add to Wishlist</span>
+                                            </>
+                                        )}
+                                        {activeTab === 'shopping' && (
+                                            <>
+                                                <span>➕</span>
+                                                <span>Add to Shopping List</span>
+                                            </>
+                                        )}
+                                        {activeTab === 'purchased' && (
+                                            <>
+                                                <span>✅</span>
+                                                <span>Add Purchased Item</span>
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                <div className="product-card p-6 mb-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                            {activeTab === 'wishlist' && (
+                                                <>
+                                                    <span>⭐</span>
+                                                    <span>Add to Wishlist</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'shopping' && (
+                                                <>
+                                                    <span>🛒</span>
+                                                    <span>Add to Shopping List</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'purchased' && (
+                                                <>
+                                                    <span>✅</span>
+                                                    <span>Add Purchased Item</span>
+                                                </>
+                                            )}
+                                        </h2>
+                                        <button
+                                            onClick={() => setShowAddForm(false)}
+                                            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📝 Item/Sale Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g., Winter Wonderland Backdrop, Gothic Dress"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🏪 Store/Creator Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., Truth Hair, Blueberry, The Arcade"
+                                                value={formData.store}
+                                                onChange={(e) => setFormData({...formData, store: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📁 Category
+                                            </label>
+                                            <select
+                                                value={formData.category}
+                                                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                                className="w-full input-field"
+                                            >
+                                                <option value="">Select a category (optional)</option>
+                                                {CATEGORIES.map(cat => (
+                                                    <option key={cat.name} value={cat.name}>
+                                                        {cat.icon} {cat.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🏷️ Status *
+                                            </label>
+                                            <select
+                                                value={formData.status}
+                                                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                                className="w-full input-field"
+                                            >
+                                                {Object.values(STATUSES).map(status => (
+                                                    <option key={status} value={status}>{status}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🏷️ Tags (comma-separated)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., winter, fantasy, formal, mesh, #sale"
+                                                value={formData.tags}
+                                                onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">💡 Add tags to help you find items later</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📄 Notes (Optional)
+                                            </label>
+                                            <textarea
+                                                placeholder="Add notes, pricing info, color preferences, etc."
+                                                value={formData.notes}
+                                                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                                className="w-full input-field h-24"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🔗 Main Store Link
+                                            </label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://marketplace.secondlife.com/..."
+                                                value={formData.link}
+                                                onChange={(e) => setFormData({...formData, link: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📍 In-World Landmark/SLURL
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="secondlife://Region/128/128/23 or landmark info"
+                                                value={formData.landmark}
+                                                onChange={(e) => setFormData({...formData, landmark: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📷 Product Image
+                                            </label>
+                                            <div 
+                                                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer bg-gray-50"
+                                                onPaste={handlePaste}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageSelect}
+                                                    className="hidden"
+                                                    id="imageUpload"
+                                                />
+                                                <label htmlFor="imageUpload" className="cursor-pointer">
+                                                    {imagePreview ? (
+                                                        <img src={imagePreview} alt="Preview" className="max-w-full max-h-64 mx-auto rounded" />
+                                                    ) : (
+                                                        <div className="text-gray-500">
+                                                            <div className="text-5xl mb-2">📷</div>
+                                                            <p className="font-semibold">Click to upload or drag & drop</p>
+                                                            <p className="text-sm">You can also paste (Ctrl/Cmd + V)</p>
+                                                        </div>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={uploading}
+                                            className="w-full sl-orange-btn py-3 rounded-lg text-lg disabled:opacity-50"
+                                        >
+                                            {uploading ? '⏳ Uploading...' : (
+                                                activeTab === 'wishlist' ? '⭐ Add to Wishlist' :
+                                                activeTab === 'shopping' ? '🛒 Add to Shopping List' :
+                                                '✅ Add Purchased Item'
+                                            )}
+                                        </button>
+                                    </form>
+                                </div>
+                                )}
+
+                                {/* Items List */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {getFilteredItems().map(item => (
+                                        <div key={item.id} className="product-card overflow-hidden">
+                                            {item.image && (
+                                                <img 
+                                                    src={item.image} 
+                                                    alt={item.name} 
+                                                    className="w-full h-48 object-contain bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+                                                    onClick={() => setLightboxImage(item.image)}
+                                                />
+                                            )}
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-lg mb-2 text-gray-800">{item.name}</h3>
+                                                {item.store && (
+                                                    <p className="text-gray-600 mb-2 flex items-center gap-1">
+                                                        <span>🏪</span>
+                                                        <span>{item.store}</span>
+                                                    </p>
+                                                )}
+                                                {item.category && (
+                                                    <p className="text-gray-500 text-sm mb-2 flex items-center gap-1">
+                                                        <span>{getCategoryIcon(item.category)}</span>
+                                                        <span>{item.category}</span>
+                                                    </p>
+                                                )}
+                                                
+                                                <div className="mb-3">
+                                                    <span className={`badge badge-${item.status.split(' ')[0]}`}>
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+
+                                                {item.tags && (
+                                                    <div className="mb-3 flex flex-wrap gap-1">
+                                                        {item.tags.split(',').map((tag, i) => (
+                                                            <span key={i} className="tag-chip">{tag.trim()}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {item.notes && (
+                                                    <p className="text-gray-600 text-sm mb-3 bg-gray-50 p-2 rounded border border-gray-200">
+                                                        💬 {item.notes}
+                                                    </p>
+                                                )}
+
+                                                <div className="flex flex-wrap gap-2 mb-3 text-sm">
+                                                    {item.link && (
+                                                        <a href={item.link} target="_blank" rel="noopener noreferrer" 
+                                                           className="text-blue-600 hover:text-blue-800 font-semibold">
+                                                            🔗 Marketplace
+                                                        </a>
+                                                    )}
+                                                    {item.landmark && (
+                                                        <span className="text-purple-600 font-semibold">📍 Landmark</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="border-t pt-3 mt-3">
+                                                    <label className="block text-xs font-semibold mb-2 text-gray-600">Change Status:</label>
+                                                    <select
+                                                        value={item.status}
+                                                        onChange={(e) => updateStatus(item.id, e.target.value)}
+                                                        className="w-full input-field text-sm mb-3"
+                                                    >
+                                                        {Object.values(STATUSES).map(status => (
+                                                            <option key={status} value={status}>{status}</option>
+                                                        ))}
+                                                    </select>
+
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => editItem(item)}
+                                                            className="flex-1 sl-blue-btn py-2 rounded text-sm"
+                                                        >
+                                                            ✏️ Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteItem(item.id)}
+                                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm font-semibold transition"
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {getFilteredItems().length === 0 && (
+                                    <div className="empty-state">
+                                        {activeTab === 'wishlist' && (
+                                            <>
+                                                <div className="empty-state-icon">⭐</div>
+                                                <h3 className="text-2xl font-bold mb-2">No wishlist items yet!</h3>
+                                                <p className="text-lg">Add items you'd like to buy someday ⬆️</p>
+                                            </>
+                                        )}
+                                        {activeTab === 'shopping' && (
+                                            <>
+                                                <div className="empty-state-icon">🛒</div>
+                                                <h3 className="text-2xl font-bold mb-2">Your shopping list is empty!</h3>
+                                                <p className="text-lg">Add items you're planning to buy soon ⬆️</p>
+                                            </>
+                                        )}
+                                        {activeTab === 'purchased' && (
+                                            <>
+                                                <div className="empty-state-icon">✅</div>
+                                                <h3 className="text-2xl font-bold mb-2">No purchased items yet!</h3>
+                                                <p className="text-lg">Items you've bought will appear here ⬆️</p>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Inventory Tab */}
+                        {activeTab === 'inventory' && (
+                            <div>
+                                <div className="product-card p-6 mb-6">
+                                    <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                        <span>🔍</span>
+                                        <span>Search Your Inventory</span>
+                                    </h2>
+                                    
+                                    <input
+                                        type="text"
+                                        placeholder="🔎 Search by name, creator, tags, or notes..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full input-field mb-4 text-lg"
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <select
+                                            value={filterCategory}
+                                            onChange={(e) => setFilterCategory(e.target.value)}
+                                            className="input-field"
+                                        >
+                                            <option value="">📁 All Categories</option>
+                                            {CATEGORIES.map(cat => (
+                                                <option key={cat.name} value={cat.name}>{cat.icon} {cat.name}</option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={filterCreator}
+                                            onChange={(e) => setFilterCreator(e.target.value)}
+                                            className="input-field"
+                                        >
+                                            <option value="">🏪 All Creators</option>
+                                            {getUniqueCreators().map(creator => (
+                                                <option key={creator} value={creator}>{creator}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <p className="text-center text-gray-600 mt-6 font-semibold">
+                                        📊 Found {getFilteredItems().length} items in your inventory
+                                    </p>
+                                </div>
+
+                                {/* Inventory Items */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {getFilteredItems().map(item => (
+                                        <div key={item.id} className="product-card overflow-hidden">
+                                            {item.image && (
+                                                <img 
+                                                    src={item.image} 
+                                                    alt={item.name} 
+                                                    className="w-full h-40 object-contain bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+                                                    onClick={() => setLightboxImage(item.image)}
+                                                />
+                                            )}
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-lg mb-2">{item.name}</h3>
+                                                {item.store && <p className="text-gray-600 mb-2">🏪 {item.store}</p>}
+                                                {item.category && <p className="text-gray-500 text-sm mb-2">{getCategoryIcon(item.category)} {item.category}</p>}
+                                                
+                                                {item.tags && (
+                                                    <div className="mb-3 flex flex-wrap gap-1">
+                                                        {item.tags.split(',').map((tag, i) => (
+                                                            <span key={i} className="tag-chip">{tag.trim()}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex gap-2 mt-3">
+                                                    <button
+                                                        onClick={() => editItem(item)}
+                                                        className="flex-1 sl-blue-btn py-2 rounded text-sm"
+                                                    >
+                                                        ✏️ Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteItem(item.id)}
+                                                        className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm font-semibold transition"
+                                                    >
+                                                        🗑️ Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {getFilteredItems().length === 0 && (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">📦</div>
+                                        <h3 className="text-2xl font-bold mb-2">No items in inventory yet</h3>
+                                        <p className="text-lg">Add items and move them to inventory to build your database! 🎯</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Settings Tab */}
+                        {activeTab === 'settings' && (
+                            <div className="product-card p-6">
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                    <span>⚙️</span>
+                                    <span>Settings & Data Management</span>
+                                </h2>
+
+                                {/* Storage Info */}
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6 rounded">
+                                    <h3 className="font-bold text-lg mb-2 text-blue-900 flex items-center gap-2">
+                                        <span>💾</span>
+                                        <span>Storage Information</span>
+                                    </h3>
+                                    <p className="mb-2"><strong>📊 Total Items:</strong> {items.length}</p>
+                                    <p className="mb-2"><strong>💿 Data Size:</strong> {(JSON.stringify(items).length / 1024).toFixed(2)} KB</p>
+                                    <p className="text-sm text-blue-700">📷 Images uploaded to ImgBB cloud storage</p>
+                                </div>
+
+                                {/* Export */}
+                                <div className="mb-6">
+                                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                        <span>📥</span>
+                                        <span>Export Your Data</span>
+                                    </h3>
+                                    <p className="text-gray-600 mb-3">Download a backup of all your items as JSON</p>
+                                    <button
+                                        onClick={exportData}
+                                        className="sl-blue-btn px-6 py-3 rounded-lg"
+                                    >
+                                        ⬇️ Export All Data
+                                    </button>
+                                </div>
+
+                                {/* Import */}
+                                <div className="mb-6">
+                                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                        <span>📤</span>
+                                        <span>Import Data</span>
+                                    </h3>
+                                    <p className="text-gray-600 mb-3">Restore from a previously exported file</p>
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        onChange={importData}
+                                        className="block w-full text-sm"
+                                    />
+                                </div>
+
+                                {/* Clear */}
+                                <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded">
+                                    <h3 className="font-bold text-lg mb-3 text-red-900 flex items-center gap-2">
+                                        <span>🗑️</span>
+                                        <span>Clear All Data</span>
+                                    </h3>
+                                    <p className="text-red-700 mb-4">⚠️ Warning: This will permanently delete all items!</p>
+                                    <button
+                                        onClick={clearAllData}
+                                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition"
+                                    >
+                                        🗑️ Clear All Data
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Edit Modal */}
+                    {showEditModal && (
+                        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                            <div className="modal-content p-6" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                    <span>✏️</span>
+                                    <span>Edit Item</span>
+                                </h2>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📝 Item Name *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🏪 Store/Creator</label>
+                                        <input
+                                            type="text"
+                                            value={formData.store}
+                                            onChange={(e) => setFormData({...formData, store: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📁 Category</label>
+                                        <select
+                                            value={formData.category}
+                                            onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                            className="w-full input-field"
+                                        >
+                                            <option value="">Select category</option>
+                                            {CATEGORIES.map(cat => (
+                                                <option key={cat.name} value={cat.name}>{cat.icon} {cat.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🏷️ Status *</label>
+                                        <select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                            className="w-full input-field"
+                                        >
+                                            {Object.values(STATUSES).map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🏷️ Tags</label>
+                                        <input
+                                            type="text"
+                                            value={formData.tags}
+                                            onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📄 Notes</label>
+                                        <textarea
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                            className="w-full input-field h-20"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🔗 Store Link</label>
+                                        <input
+                                            type="url"
+                                            value={formData.link}
+                                            onChange={(e) => setFormData({...formData, link: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📍 Landmark</label>
+                                        <input
+                                            type="text"
+                                            value={formData.landmark}
+                                            onChange={(e) => setFormData({...formData, landmark: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    {imagePreview && (
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2">📷 Current Image</label>
+                                            <img src={imagePreview} alt="Preview" className="max-w-full max-h-48 rounded mx-auto" />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📷 Change Image</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageSelect}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-4 mt-6">
+                                        <button
+                                            type="submit"
+                                            disabled={uploading}
+                                            className="flex-1 sl-orange-btn py-3 rounded-lg disabled:opacity-50"
+                                        >
+                                            {uploading ? '⏳ Uploading...' : '✅ Update Item'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="px-6 bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-lg font-semibold transition"
+                                        >
+                                            ❌ Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Dark Mode Toggle */}
+                    <button
+                        onClick={toggleDarkMode}
+                        className="dark-mode-toggle"
+                        title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    >
+                        {darkMode ? '☀️' : '🌙'}
+                    </button>
+
+                    {/* Image Lightbox */}
+                    {lightboxImage && (
+                        <div 
+                            className="modal-overlay" 
+                            onClick={() => setLightboxImage(null)}
+                            style={{ cursor: 'zoom-out' }}
+                        >
+                            <div className="max-w-7xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
+                                <img 
+                                    src={lightboxImage} 
+                                    alt="Full size" 
+                                    className="max-w-full max-h-screen object-contain mx-auto rounded-lg shadow-2xl"
+                                    style={{ cursor: 'zoom-out' }}
+                                    onClick={() => setLightboxImage(null)}
+                                />
+                                <button
+                                    onClick={() => setLightboxImage(null)}
+                                    className="absolute top-4 right-4 bg-white text-gray-800 rounded-full w-12 h-12 flex items-center justify-center text-2xl font-bold hover:bg-gray-200 transition shadow-lg"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
