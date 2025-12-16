@@ -323,6 +323,17 @@
             box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
         }
 
+        /* Hide number input spinner arrows */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -375,6 +386,39 @@
             margin-bottom: 20px;
             opacity: 0.5;
         }
+
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        body.dark-mode .stats-card {
+            background: var(--dark-purple-1);
+            border: 2px solid var(--dark-purple-3);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        body.dark-mode .stats-card:hover {
+            border-color: var(--dark-gold);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -416,6 +460,7 @@
                 status: STATUSES.WISHLIST,
                 tags: '',
                 notes: '',
+                price: '',
                 link: '',
                 landmark: '',
                 image: ''
@@ -432,6 +477,10 @@
             const [filterCategory, setFilterCategory] = useState('');
             const [filterCreator, setFilterCreator] = useState('');
             const [darkMode, setDarkMode] = useState(false);
+            const [customLists, setCustomLists] = useState([]);
+            const [showListManager, setShowListManager] = useState(false);
+            const [newListName, setNewListName] = useState('');
+            const [selectedCustomList, setSelectedCustomList] = useState(null);
 
             useEffect(() => {
                 const loadData = () => {
@@ -445,12 +494,24 @@
                             setDarkMode(true);
                             document.body.classList.add('dark-mode');
                         }
+                        const savedLists = localStorage.getItem('sl-tracker-custom-lists');
+                        if (savedLists) {
+                            setCustomLists(JSON.parse(savedLists));
+                        }
                     } catch (error) {
                         console.log('No existing data found');
                     }
                 };
                 loadData();
             }, []);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-lists', JSON.stringify(customLists));
+                } catch (error) {
+                    console.error('Error saving lists:', error);
+                }
+            }, [customLists]);
 
             const toggleDarkMode = () => {
                 const newDarkMode = !darkMode;
@@ -470,6 +531,41 @@
                     console.error('Error saving data:', error);
                 }
             }, [items]);
+
+            const addCustomList = () => {
+                if (newListName.trim()) {
+                    const newList = {
+                        id: Date.now(),
+                        name: newListName.trim(),
+                        icon: '📋',
+                        createdAt: new Date().toISOString()
+                    };
+                    setCustomLists([...customLists, newList]);
+                    setNewListName('');
+                }
+            };
+
+            const deleteCustomList = (listId) => {
+                if (confirm('🗑️ Delete this list? Items in this list will move to Wishlist.')) {
+                    setItems(items.map(item => 
+                        item.customListId === listId 
+                            ? { ...item, customListId: null, status: STATUSES.WISHLIST }
+                            : item
+                    ));
+                    setCustomLists(customLists.filter(list => list.id !== listId));
+                    if (selectedCustomList === listId) {
+                        setSelectedCustomList(null);
+                    }
+                }
+            };
+
+            const editCustomListName = (listId, newName) => {
+                if (newName.trim()) {
+                    setCustomLists(customLists.map(list => 
+                        list.id === listId ? { ...list, name: newName.trim() } : list
+                    ));
+                }
+            };
 
             const uploadToImgBB = async (file) => {
                 const formData = new FormData();
@@ -536,6 +632,7 @@
                     id: editingId || Date.now(),
                     ...formData,
                     image: imageUrl,
+                    customListId: selectedCustomList || null,
                     createdAt: editingId ? items.find(i => i.id === editingId).createdAt : new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -562,6 +659,7 @@
                     status: defaultStatus,
                     tags: '',
                     notes: '',
+                    price: '',
                     link: '',
                     landmark: '',
                     image: ''
@@ -587,6 +685,7 @@
                     status: item.status,
                     tags: item.tags,
                     notes: item.notes,
+                    price: item.price || '',
                     link: item.link,
                     landmark: item.landmark,
                     image: item.image
@@ -604,6 +703,11 @@
 
             const getFilteredItems = () => {
                 let statusFilter;
+                
+                // Handle custom lists
+                if (activeTab === 'custom' && selectedCustomList) {
+                    return items.filter(item => item.customListId === selectedCustomList);
+                }
                 
                 switch(activeTab) {
                     case 'wishlist':
@@ -624,6 +728,7 @@
                 
                 return items.filter(item => {
                     const matchesStatus = item.status === statusFilter;
+                    const notInCustomList = !item.customListId; // Only show items not in custom lists
                     
                     if (activeTab === 'inventory') {
                         const matchesSearch = searchTerm === '' || 
@@ -637,12 +742,22 @@
                         return matchesStatus && matchesSearch && matchesCategory && matchesCreator;
                     }
                     
-                    return matchesStatus;
+                    return matchesStatus && notInCustomList;
                 });
             };
 
             const getUniqueCreators = () => {
                 return [...new Set(items.map(item => item.store).filter(Boolean))];
+            };
+
+            const getTotalPrice = (status) => {
+                return items
+                    .filter(item => item.status === status && item.price)
+                    .reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+            };
+
+            const getItemCount = (status) => {
+                return items.filter(item => item.status === status).length;
             };
 
             const getCategoryIcon = (categoryName) => {
@@ -690,8 +805,11 @@
                 <div className="min-h-screen pb-8">
                     {/* Header */}
                     <div className="sl-header text-white py-6 px-4 mb-6">
-                        <div className="max-w-7xl mx-auto">
-                            <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
+                        <div className="max-w-7xl mx-auto text-center">
+                            <h1 
+                                className="text-3xl md:text-4xl font-bold mb-2 flex items-center justify-center gap-3 cursor-pointer hover:opacity-80 transition"
+                                onClick={() => { setActiveTab('wishlist'); setShowAddForm(false); setSelectedCustomList(null); }}
+                            >
                                 <span>🛍️</span>
                                 <span>Second Life Shopping Tracker</span>
                             </h1>
@@ -703,65 +821,88 @@
                         {/* Navigation Tabs */}
                         <div className="flex flex-wrap gap-2 mb-6">
                             <button
-                                onClick={() => { setActiveTab('wishlist'); setShowAddForm(false); }}
+                                onClick={() => { setActiveTab('wishlist'); setShowAddForm(false); setSelectedCustomList(null); }}
                                 className={`tab-btn ${activeTab === 'wishlist' ? 'tab-active' : 'tab-inactive'}`}
                             >
                                 ⭐ Wishlist
                             </button>
                             <button
-                                onClick={() => { setActiveTab('shopping'); setShowAddForm(false); }}
+                                onClick={() => { setActiveTab('shopping'); setShowAddForm(false); setSelectedCustomList(null); }}
                                 className={`tab-btn ${activeTab === 'shopping' ? 'tab-active' : 'tab-inactive'}`}
                             >
                                 🛒 Shopping List
                             </button>
                             <button
-                                onClick={() => { setActiveTab('purchased'); setShowAddForm(false); }}
+                                onClick={() => { setActiveTab('purchased'); setShowAddForm(false); setSelectedCustomList(null); }}
                                 className={`tab-btn ${activeTab === 'purchased' ? 'tab-active' : 'tab-inactive'}`}
                             >
                                 ✅ Purchased
                             </button>
                             <button
-                                onClick={() => { setActiveTab('inventory'); setShowAddForm(false); }}
+                                onClick={() => { setActiveTab('inventory'); setShowAddForm(false); setSelectedCustomList(null); }}
                                 className={`tab-btn ${activeTab === 'inventory' ? 'tab-active' : 'tab-inactive'}`}
                             >
                                 📦 Inventory
                             </button>
+                            
                             <button
-                                onClick={() => { setActiveTab('settings'); setShowAddForm(false); }}
+                                onClick={() => setShowListManager(true)}
+                                className="tab-btn tab-inactive"
+                            >
+                                ➕ Manage Lists
+                            </button>
+                            
+                            <button
+                                onClick={() => { setActiveTab('settings'); setShowAddForm(false); setSelectedCustomList(null); }}
                                 className={`tab-btn ${activeTab === 'settings' ? 'tab-active' : 'tab-inactive'}`}
                             >
                                 ⚙️ Settings
                             </button>
                         </div>
 
-                        {/* Wishlist, Shopping List, and Purchased Tabs */}
-                        {(activeTab === 'wishlist' || activeTab === 'shopping' || activeTab === 'purchased') && (
+                        {/* Wishlist, Shopping List, Purchased, and Custom Lists Tabs */}
+                        {(activeTab === 'wishlist' || activeTab === 'shopping' || activeTab === 'purchased' || activeTab === 'custom') && (
                             <div>
                                 {/* Add New Item Button / Form */}
                                 {!showAddForm ? (
-                                    <button
-                                        onClick={() => setShowAddForm(true)}
-                                        className="w-full sl-orange-btn py-4 rounded-lg text-xl mb-6 flex items-center justify-center gap-2"
-                                    >
-                                        {activeTab === 'wishlist' && (
-                                            <>
-                                                <span>⭐</span>
-                                                <span>Add to Wishlist</span>
-                                            </>
-                                        )}
-                                        {activeTab === 'shopping' && (
-                                            <>
-                                                <span>➕</span>
-                                                <span>Add to Shopping List</span>
-                                            </>
-                                        )}
-                                        {activeTab === 'purchased' && (
-                                            <>
-                                                <span>✅</span>
-                                                <span>Add Purchased Item</span>
-                                            </>
-                                        )}
-                                    </button>
+                                    <div className="flex gap-3 mb-6">
+                                        <button
+                                            onClick={() => setShowAddForm(true)}
+                                            className="flex-1 sl-orange-btn py-4 rounded-lg text-xl flex items-center justify-center gap-2"
+                                        >
+                                            {activeTab === 'wishlist' && (
+                                                <>
+                                                    <span>⭐</span>
+                                                    <span>Add to Wishlist</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'shopping' && (
+                                                <>
+                                                    <span>➕</span>
+                                                    <span>Add to Shopping List</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'purchased' && (
+                                                <>
+                                                    <span>✅</span>
+                                                    <span>Add Purchased Item</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'custom' && (
+                                                <>
+                                                    <span>➕</span>
+                                                    <span>Add to {customLists.find(l => l.id === selectedCustomList)?.name}</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => setShowListManager(true)}
+                                            className="sl-blue-btn px-6 py-4 rounded-lg text-lg flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <span>📋</span>
+                                            <span>Create List</span>
+                                        </button>
+                                    </div>
                                 ) : (
                                 <div className="product-card p-6 mb-6">
                                     <div className="flex items-center justify-between mb-6">
@@ -782,6 +923,12 @@
                                                 <>
                                                     <span>✅</span>
                                                     <span>Add Purchased Item</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'custom' && (
+                                                <>
+                                                    <span>{customLists.find(l => l.id === selectedCustomList)?.icon}</span>
+                                                    <span>Add to {customLists.find(l => l.id === selectedCustomList)?.name}</span>
                                                 </>
                                             )}
                                         </h2>
@@ -853,6 +1000,27 @@
                                             </select>
                                         </div>
 
+                                        {customLists.length > 0 && (
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                    📋 Add to Custom List (Optional)
+                                                </label>
+                                                <select
+                                                    value={selectedCustomList || ''}
+                                                    onChange={(e) => setSelectedCustomList(e.target.value ? parseInt(e.target.value) : null)}
+                                                    className="w-full input-field"
+                                                >
+                                                    <option value="">None - Use regular list</option>
+                                                    {customLists.map(list => (
+                                                        <option key={list.id} value={list.id}>
+                                                            {list.icon} {list.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-sm text-gray-500 mt-1">💡 Items in custom lists won't appear in regular Wishlist/Shopping tabs</p>
+                                            </div>
+                                        )}
+
                                         <div>
                                             <label className="block text-sm font-semibold mb-2 text-gray-700">
                                                 🏷️ Tags (comma-separated)
@@ -865,6 +1033,22 @@
                                                 className="w-full input-field"
                                             />
                                             <p className="text-sm text-gray-500 mt-1">💡 Add tags to help you find items later</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                💰 Price (L$)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                placeholder="e.g., 299"
+                                                value={formData.price}
+                                                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                                className="w-full input-field"
+                                                min="0"
+                                                step="1"
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">💡 Track how much items cost</p>
                                         </div>
 
                                         <div>
@@ -949,6 +1133,88 @@
                                 </div>
                                 )}
 
+                                {/* My Custom Lists Section */}
+                                {customLists.length > 0 && (
+                                    <div className="product-card p-6 mb-6">
+                                        <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                                            <span>📚</span>
+                                            <span>My Custom Lists</span>
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {customLists.map(list => (
+                                                <button
+                                                    key={list.id}
+                                                    onClick={() => {
+                                                        setSelectedCustomList(list.id);
+                                                        setActiveTab('custom');
+                                                    }}
+                                                    className="product-card p-4 text-left hover:scale-105 transition-transform"
+                                                >
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <span className="text-3xl">{list.icon}</span>
+                                                        <div className="flex-1">
+                                                            <div className="font-bold text-gray-800">{list.name}</div>
+                                                            <div className="text-sm" style={{color: '#ffd700'}}>
+                                                                {items.filter(item => item.customListId === list.id).length} {items.filter(item => item.customListId === list.id).length === 1 ? 'item' : 'items'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number text-blue-600">
+                                            {getItemCount(
+                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
+                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
+                                                activeTab === 'custom' ? null :
+                                                STATUSES.PURCHASED
+                                            ) || (activeTab === 'custom' ? getFilteredItems().length : 0)}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            📦 {((activeTab === 'custom' ? getFilteredItems().length : getItemCount(
+                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
+                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
+                                                STATUSES.PURCHASED
+                                            )) === 1) ? 'Item' : 'Items'}
+                                        </div>
+                                    </div>
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number" style={{color: '#ffd700'}}>
+                                            {getTotalPrice(
+                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
+                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
+                                                activeTab === 'custom' ? null :
+                                                STATUSES.PURCHASED
+                                            ) || (activeTab === 'custom' ? getFilteredItems().reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0).toLocaleString()}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            💰 L$ Total
+                                        </div>
+                                    </div>
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number text-purple-600">
+                                            {getItemCount(STATUSES.WISHLIST)}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            ⭐ Wishlist
+                                        </div>
+                                    </div>
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number text-green-600">
+                                            {getItemCount(STATUSES.INVENTORY)}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            📦 Owned
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Items List */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {getFilteredItems().map(item => (
@@ -975,6 +1241,17 @@
                                                         <span>{item.category}</span>
                                                     </p>
                                                 )}
+                                                
+                                                {item.price && (
+                                                    <p className="font-bold mb-2 flex items-center gap-1" style={{color: '#ffd700'}}>
+                                                        <span>💰</span>
+                                                        <span>L$ {parseFloat(item.price).toLocaleString()}</span>
+                                                    </p>
+                                                )}
+
+                                                <p className="text-xs text-gray-500 mb-3">
+                                                    📅 Added {new Date(item.createdAt).toLocaleDateString()}
+                                                </p>
                                                 
                                                 <div className="mb-3">
                                                     <span className={`badge badge-${item.status.split(' ')[0]}`}>
@@ -1303,6 +1580,19 @@
                                     </div>
 
                                     <div>
+                                        <label className="block text-sm font-semibold mb-2">💰 Price (L$)</label>
+                                        <input
+                                            type="number"
+                                            value={formData.price}
+                                            onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                            className="w-full input-field"
+                                            min="0"
+                                            step="1"
+                                            placeholder="e.g., 299"
+                                        />
+                                    </div>
+
+                                    <div>
                                         <label className="block text-sm font-semibold mb-2">📄 Notes</label>
                                         <textarea
                                             value={formData.notes}
@@ -1365,6 +1655,105 @@
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* List Manager Modal */}
+                    {showListManager && (
+                        <div className="modal-overlay" onClick={() => setShowListManager(false)}>
+                            <div className="modal-content p-6" onClick={(e) => e.stopPropagation()} style={{maxWidth: '900px'}}>
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                    <span>📋</span>
+                                    <span>Manage Custom Lists</span>
+                                </h2>
+                                
+                                {/* Add New List */}
+                                <div className="product-card p-6 mb-6">
+                                    <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                                        <span>✨</span>
+                                        <span>Create New List</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newListName}
+                                            onChange={(e) => setNewListName(e.target.value)}
+                                            placeholder="e.g., Wedding Decor, Halloween Party"
+                                            className="flex-1 input-field"
+                                            onKeyPress={(e) => e.key === 'Enter' && addCustomList()}
+                                        />
+                                        <button
+                                            onClick={addCustomList}
+                                            className="sl-orange-btn px-8 py-3 rounded-lg"
+                                        >
+                                            ➕ Add
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Existing Lists */}
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-lg text-gray-700 flex items-center gap-2">
+                                        <span>📚</span>
+                                        <span>Your Lists ({customLists.length})</span>
+                                    </h3>
+                                    {customLists.length === 0 ? (
+                                        <div className="product-card text-center py-12 text-gray-500">
+                                            <div className="text-6xl mb-4">📝</div>
+                                            <p className="text-lg">No custom lists yet. Create one above!</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                            {customLists.map(list => (
+                                                <div key={list.id} className="product-card p-5">
+                                                    <div className="flex items-center justify-between gap-4 mb-3">
+                                                        <div className="flex items-center gap-3 flex-1">
+                                                            <span className="text-3xl">{list.icon}</span>
+                                                            <input
+                                                                type="text"
+                                                                value={list.name}
+                                                                onChange={(e) => editCustomListName(list.id, e.target.value)}
+                                                                className="flex-1 input-field py-2 px-3 text-lg font-semibold"
+                                                            />
+                                                            <div className="text-center">
+                                                                <div className="text-2xl font-bold" style={{color: '#ffd700'}}>
+                                                                    {items.filter(item => item.customListId === list.id).length}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {items.filter(item => item.customListId === list.id).length === 1 ? 'item' : 'items'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => deleteCustomList(list.id)}
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-lg font-semibold transition flex-shrink-0"
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedCustomList(list.id);
+                                                            setActiveTab('custom');
+                                                            setShowListManager(false);
+                                                        }}
+                                                        className="w-full sl-blue-btn py-3 rounded-lg text-base font-semibold"
+                                                    >
+                                                        👀 View List
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => setShowListManager(false)}
+                                    className="w-full mt-6 bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-lg font-semibold transition text-lg"
+                                >
+                                    ✅ Done
+                                </button>
                             </div>
                         </div>
                     )}
