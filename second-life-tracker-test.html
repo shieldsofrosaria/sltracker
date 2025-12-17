@@ -1,0 +1,3216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 TEST - Second Life Shopping Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK - Lazy loaded on demand -->
+    <script>
+        // Firebase configuration
+        window.firebaseConfig = {
+            apiKey: "AIzaSyCjXLoLBGXwAY0EXPI0QrhMBUd4ic36nII",
+            authDomain: "sl-shopping-tracker.firebaseapp.com",
+            projectId: "sl-shopping-tracker",
+            storageBucket: "sl-shopping-tracker.firebasestorage.app",
+            messagingSenderId: "841243726764",
+            appId: "1:841243726764:web:b7ad10ce99680359b02009"
+        };
+        
+        // Lazy-load Firebase only when needed
+        window.loadFirebase = function() {
+            return new Promise((resolve, reject) => {
+                if (window.firebase) {
+                    resolve();
+                    return;
+                }
+                
+                console.log('[Firebase] Lazy loading...');
+                const scripts = [
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'
+                ];
+                
+                let loaded = 0;
+                scripts.forEach((src, index) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = () => {
+                        loaded++;
+                        if (loaded === scripts.length) {
+                            firebase.initializeApp(window.firebaseConfig);
+                            console.log('[Firebase] Initialized (lazy)');
+                            resolve();
+                        }
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            });
+        };
+    </script>
+    
+    <script>
+        // Suppress Tailwind production warning
+        window.tailwindConfig = { devMode: false };
+    </script>
+    <style>
+        /* TEST PAGE BANNER */
+        .test-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #ff6b1a 0%, #ff0000 100%);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        body { padding-top: 50px !important; }
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&display=swap');
+        
+        :root {
+            /* Light mode colors */
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #e8eef5;
+            --card-bg: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --border-color: #d4dde8;
+            
+            /* Dark mode purple palette */
+            --dark-bg-primary: #10002b;
+            --dark-bg-secondary: #240046;
+            --dark-purple-1: #3c096c;
+            --dark-purple-2: #5a189a;
+            --dark-purple-3: #7b2cbf;
+            --dark-purple-4: #9d4edd;
+            --dark-purple-5: #c77dff;
+            --dark-purple-6: #e0aaff;
+            --dark-gold: #ffd700;
+            --dark-gold-dim: #ffed4e;
+        }
+        
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            background: linear-gradient(to bottom, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(to bottom, var(--dark-bg-primary) 0%, var(--dark-bg-secondary) 100%);
+        }
+
+        body.dark-mode .sl-header {
+            background: linear-gradient(135deg, var(--dark-purple-2) 0%, var(--dark-purple-3) 100%);
+        }
+
+        body.dark-mode .product-card {
+            background: var(--dark-purple-1);
+            border-color: var(--dark-purple-3);
+            color: #ffffff;
+        }
+
+        body.dark-mode .product-card:hover {
+            border-color: var(--dark-gold);
+        }
+
+        body.dark-mode .tab-active {
+            background: var(--dark-purple-2);
+            color: var(--dark-gold);
+            border-bottom-color: var(--dark-gold);
+        }
+
+        body.dark-mode .tab-inactive {
+            background: var(--dark-bg-secondary);
+            color: var(--dark-purple-6);
+        }
+
+        body.dark-mode .tab-inactive:hover {
+            background: var(--dark-purple-1);
+        }
+
+        body.dark-mode .input-field {
+            background: var(--dark-bg-primary);
+            border-color: var(--dark-purple-3);
+            color: #ffffff;
+        }
+
+        body.dark-mode .input-field:focus {
+            border-color: var(--dark-gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+        }
+
+        body.dark-mode .input-field::placeholder {
+            color: var(--dark-purple-6);
+        }
+
+        body.dark-mode .tag-chip {
+            background: var(--dark-purple-2);
+            color: var(--dark-purple-6);
+            border-color: var(--dark-purple-4);
+        }
+
+        body.dark-mode h1,
+        body.dark-mode h2,
+        body.dark-mode h3,
+        body.dark-mode label {
+            color: #ffffff;
+        }
+
+        body.dark-mode .text-gray-800 {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .text-gray-700 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode .text-gray-600 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode .text-gray-500 {
+            color: var(--dark-purple-5) !important;
+        }
+
+        body.dark-mode .bg-gray-50 {
+            background: var(--dark-bg-secondary) !important;
+        }
+
+        body.dark-mode .bg-purple-50 {
+            background: var(--dark-purple-2) !important;
+        }
+
+        body.dark-mode .text-purple-900 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode kbd {
+            background: var(--dark-bg-primary) !important;
+            border-color: var(--dark-gold) !important;
+            color: white !important;
+        }
+
+        body.dark-mode .border-gray-200 {
+            border-color: var(--dark-purple-3) !important;
+        }
+
+        body.dark-mode .border-gray-300 {
+            border-color: var(--dark-purple-3) !important;
+        }
+
+        body.dark-mode .empty-state {
+            color: var(--dark-purple-6);
+        }
+
+        body.dark-mode .bg-blue-50 {
+            background: var(--dark-purple-2) !important;
+        }
+
+        body.dark-mode .text-blue-900 {
+            color: var(--dark-purple-6) !important;
+        }
+
+        body.dark-mode .text-blue-700 {
+            color: var(--dark-purple-5) !important;
+        }
+
+        body.dark-mode .border-blue-500 {
+            border-color: var(--dark-purple-4) !important;
+        }
+
+        body.dark-mode .bg-red-50 {
+            background: rgba(139, 0, 0, 0.2) !important;
+        }
+
+        body.dark-mode .text-red-900 {
+            color: #ff6b6b !important;
+        }
+
+        body.dark-mode .text-red-700 {
+            color: #ff8888 !important;
+        }
+
+        body.dark-mode .border-red-500 {
+            border-color: #dc2626 !important;
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: linear-gradient(135deg, var(--dark-gold) 0%, var(--dark-gold-dim) 100%);
+        }
+
+        .sl-header {
+            background: linear-gradient(135deg, #1a5490 0%, #2673b8 100%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .sl-orange-btn {
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(255, 107, 26, 0.3);
+        }
+
+        .sl-orange-btn:hover {
+            background: linear-gradient(135deg, #ff6b1a 0%, #ff5500 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(255, 107, 26, 0.4);
+        }
+
+        .sl-blue-btn {
+            background: linear-gradient(135deg, #2673b8 0%, #1a5490 100%);
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .sl-blue-btn:hover {
+            background: linear-gradient(135deg, #1a5490 0%, #0f3d6f 100%);
+            transform: translateY(-1px);
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            border-color: #ff8c42;
+            transform: translateY(-2px);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .tab-active {
+            background: white;
+            color: #2673b8;
+            border-bottom: 3px solid #ff8c42;
+        }
+
+        .tab-inactive {
+            background: #e8eef5;
+            color: #666;
+        }
+
+        .tab-inactive:hover {
+            background: #d4dde8;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-⭐ {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .badge-🛒 {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #17a2b8;
+        }
+
+        .badge-✅ {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .badge-📦 {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .tag-chip {
+            display: inline-block;
+            background: #e8eef5;
+            color: #2673b8;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 2px;
+            border: 1px solid #2673b8;
+        }
+
+        .input-field {
+            border: 2px solid #d4dde8;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #ff8c42;
+            box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        /* Hide number input spinner arrows */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+        }
+
+        body.dark-mode .modal-content {
+            background: var(--dark-purple-1);
+            border: 2px solid var(--dark-purple-3);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        body.dark-mode .stats-card {
+            background: var(--dark-purple-1);
+            border: 2px solid var(--dark-purple-3);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        body.dark-mode .stats-card:hover {
+            border-color: var(--dark-gold);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        /* Animated transitions */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .item-card {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        /* Category color coding */
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .category-Animations { background: #fef3c7; color: #92400e; }
+        .category-Body-Parts { background: #ddd6fe; color: #5b21b6; }
+        .category-Clothing { background: #fce7f3; color: #9f1239; }
+        .category-Creator-Tools { background: #dbeafe; color: #1e40af; }
+        .category-EEP-Windlights { background: #fef3c7; color: #b45309; }
+        .category-Food-Drink { background: #fee2e2; color: #991b1b; }
+        .category-Home-Garden { background: #d1fae5; color: #065f46; }
+        .category-Photography-Tools { background: #e0e7ff; color: #3730a3; }
+        .category-Backdrops { background: #fbcfe8; color: #831843; }
+        .category-Textures-Materials { background: #ccfbf1; color: #134e4a; }
+        .category-Toys { background: #fef9c3; color: #854d0e; }
+        .category-Weapons { background: #fee2e2; color: #7f1d1d; }
+        .category-Vehicles { background: #dbeafe; color: #1e3a8a; }
+
+        body.dark-mode .category-badge {
+            opacity: 0.9;
+        }
+
+        body.dark-mode .text-gray-600 {
+            color: #d1d5db !important;
+        }
+
+        /* Status badge with glow */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .status-wishlist {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        }
+
+        .status-shopping {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .status-purchased {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .status-inventory {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+        }
+
+        body.dark-mode .status-badge {
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Quick copy button */
+        .copy-btn {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            background: var(--dark-purple-2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--dark-gold);
+            color: #000;
+            transform: scale(1.05);
+        }
+
+        body.dark-mode .copy-btn {
+            background: var(--dark-purple-3);
+        }
+
+        body.dark-mode .copy-btn:hover {
+            background: var(--dark-gold);
+        }
+
+        /* Bulk selection */
+        .bulk-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #ff8c42;
+        }
+
+        body.dark-mode .bulk-checkbox {
+            accent-color: var(--dark-gold);
+        }
+
+        .bulk-actions-bar {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 999;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        body.dark-mode .bulk-actions-bar {
+            background: var(--dark-purple-2);
+            border: 2px solid var(--dark-gold);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #root {
+                padding: 0 10px;
+            }
+            
+            .sl-header {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 1.75rem !important;
+            }
+            
+            h2 {
+                font-size: 1.25rem !important;
+            }
+            
+            .product-card {
+                padding: 20px 15px;
+                margin-bottom: 20px;
+            }
+            
+            .modal-content {
+                margin: 10px;
+                max-height: calc(100vh - 20px);
+                max-width: calc(100vw - 20px);
+            }
+            
+            /* Ensure form fields fit on mobile */
+            .input-field {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                max-width: 100%;
+                padding: 10px 12px;
+            }
+            
+            select.input-field {
+                font-size: 16px !important;
+            }
+            
+            textarea.input-field {
+                font-size: 16px !important;
+                min-height: 80px;
+            }
+            
+            /* Fix buttons on mobile */
+            .sl-orange-btn,
+            .sl-blue-btn {
+                font-size: 16px;
+                padding: 14px 20px;
+            }
+            
+            /* Stack Add Item and Create List buttons vertically on mobile */
+            .flex.gap-3.mb-6 {
+                flex-direction: column !important;
+            }
+            
+            .flex.gap-3.mb-6 button {
+                width: 100% !important;
+            }
+            
+            /* Fix stats grid on mobile */
+            .stats-card {
+                padding: 12px;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                font-size: 0.75rem;
+            }
+            
+            /* Fix tab buttons on mobile */
+            .tab-btn {
+                font-size: 13px;
+                padding: 10px 14px;
+            }
+            
+            /* Fix custom lists grid */
+            .grid.grid-cols-1.md\:grid-cols-3 {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Fix item cards grid */
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Fix dark mode toggle position */
+            .dark-mode-toggle {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-banner">
+        🧪 TEST PAGE - Performance Optimization Testing - DO NOT USE FOR REAL DATA
+    </div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const STATUSES = {
+            WISHLIST: '⭐ Wishlist - Want to buy',
+            SHOPPING: '🛒 Shopping List - Planning to buy',
+            SORT: '📦 Sort - Needs to be sorted in SL',
+            INVENTORY: '✅ In Inventory - Owned & Sorted'
+        };
+
+        const CATEGORIES = [
+            { name: 'Animations', icon: '💃' },
+            { name: 'Body Parts', icon: '👤' },
+            { name: 'Clothing', icon: '👗' },
+            { name: 'Creator Tools', icon: '🛠️' },
+            { name: 'EEP/Windlights', icon: '🌅' },
+            { name: 'Food & Drink', icon: '🍔' },
+            { name: 'Heads', icon: '👤' },
+            { name: 'Home & Garden', icon: '🏡' },
+            { name: 'Photography Tools', icon: '📸' },
+            { name: 'Backdrops', icon: '🎭' },
+            { name: 'Textures / Materials', icon: '🎨' },
+            { name: 'Toys', icon: '🎮' },
+            { name: 'Weapons', icon: '⚔️' },
+            { name: 'Vehicles', icon: '🚗' }
+        ];
+
+        const HEAD_OPTIONS = ['Espen', 'Martian Mutt', 'Abaddon'];
+        const BODY_OPTIONS = ['eBody Reborn', 'Belleza Jake', 'Anatomy', 'LeL Tae', 'LeL Eon', 'LeL Kaya', 'LeL'];
+        const HAIRSTYLE_OPTIONS = ['Short', 'Medium', 'Long', 'Updo', 'Ponytail'];
+        const CLOTHING_OPTIONS = ['Top', 'Bottom', 'Dress', 'Shoes', 'Accessories', 'Outerwear', 'Underwear', 'Full Outfit'];
+
+        const HOME_GARDEN_OPTIONS = [
+            'Appliances',
+            'Electronics',
+            'Fireplaces',
+            'Fountains',
+            'Furniture: Bathroom',
+            'Furniture: Bedroom',
+            'Furniture: Dining Room',
+            'Furniture: Kitchen',
+            'Furniture: Office',
+            'Furniture: Living Room',
+            'Furniture: Outdoor',
+            'Furniture: Recreational Room',
+            'Landscaping',
+            'Lighting',
+            'Pools / Hot Tubs',
+            'Rugs',
+            'Aquariums',
+            'Books',
+            'Clocks',
+            'Flowers / Plants',
+            'Exterior Decor',
+            'Mirrors',
+            'Pottery / Ceramics',
+            'Vehicles'
+        ];
+
+        function App() {
+            const [items, setItems] = useState([]);
+            const [activeTab, setActiveTab] = useState('wishlist');
+            const [formData, setFormData] = useState({
+                name: '',
+                store: '',
+                category: '',
+                subcategory: '',
+                status: STATUSES.WISHLIST,
+                tags: '',
+                notes: '',
+                price: '',
+                link: '',
+                landmark: '',
+                image: '',
+                // Extended fields for Sort/Inventory
+                color: '',
+                head: '',
+                body: '',
+                hairstyleType: '',
+                clothingType: '',
+                bakesOnMesh: '',
+                customFieldValues: {}
+            });
+            const [imageFile, setImageFile] = useState(null);
+            const [imagePreview, setImagePreview] = useState('');
+            const [uploading, setUploading] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [lightboxImage, setLightboxImage] = useState(null);
+            const [showAddForm, setShowAddForm] = useState(false);
+            
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterCategory, setFilterCategory] = useState('');
+            const [filterCreator, setFilterCreator] = useState('');
+            const [darkMode, setDarkMode] = useState(false);
+            const [customLists, setCustomLists] = useState([]);
+            const [showListManager, setShowListManager] = useState(false);
+            const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
+            const [newListName, setNewListName] = useState('');
+            const [selectedCustomList, setSelectedCustomList] = useState(null);
+            
+            // Extended fields for Sort/Inventory
+            const [customCategories, setCustomCategories] = useState([]);
+            const [customHeads, setCustomHeads] = useState([]);
+            const [customBodies, setCustomBodies] = useState([]);
+            const [customHairstyles, setCustomHairstyles] = useState([]);
+            const [customClothingTypes, setCustomClothingTypes] = useState([]);
+            const [customFields, setCustomFields] = useState([]);
+            
+            // Bulk actions
+            const [selectedItems, setSelectedItems] = useState([]);
+            const [bulkMode, setBulkMode] = useState(false);
+            const [globalSearch, setGlobalSearch] = useState('');
+            const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+
+            // Authentication UI state: detect firebase auth object in localStorage (works for redirect/compat flows)
+            const [authUser, setAuthUser] = useState(null);
+            const isLoadingFromCloud = React.useRef(false);
+
+            useEffect(() => {
+                const findAuthUser = async () => {
+                    try {
+                        console.log('[Auth Debug] Scanning for auth state...');
+                        // 1) scan localStorage for common firebase auth keys
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (!key) continue;
+                            const lower = key.toLowerCase();
+                            if (lower.includes('authuser') || lower.includes('firebase:authuser') || lower.includes('firebase-auth')) {
+                                const raw = localStorage.getItem(key);
+                                if (raw) {
+                                    try {
+                                        const parsed = JSON.parse(raw);
+                                        console.log('[Auth Debug] Found auth key:', key, 'Email:', parsed.email);
+                                        if (parsed && (parsed.email || parsed.displayName || parsed.uid)) {
+                                            setAuthUser({ email: parsed.email || null, name: parsed.displayName || null, uid: parsed.uid || null });
+                                            console.log('[Auth Debug] Set authUser from localStorage');
+                                            return;
+                                        }
+                                    } catch (e) {
+                                        // ignore parse errors
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2) If firebase SDK is present, use onAuthStateChanged for reliable detection
+                        if (window.firebase && window.firebase.auth && typeof window.firebase.auth === 'function') {
+                            try {
+                                console.log('[Auth Debug] Firebase SDK detected, setting up onAuthStateChanged');
+                                const auth = window.firebase.auth();
+                                auth.onAuthStateChanged(user => {
+                                    if (user) {
+                                        console.log('[Auth Debug] User signed in via SDK:', user.email);
+                                        setAuthUser({ email: user.email || null, name: user.displayName || null, uid: user.uid });
+                                    } else {
+                                        console.log('[Auth Debug] No user from SDK');
+                                        setAuthUser(null);
+                                    }
+                                });
+                                return;
+                            } catch (e) {
+                                console.warn('[Auth Debug] Firebase SDK error:', e);
+                                // ignore and continue
+                            }
+                        } else {
+                            console.log('[Auth Debug] No Firebase SDK found');
+                        }
+
+                        // 3) Try reading IndexedDB fallback used by newer SDKs (best-effort)
+                        try {
+                            const req = indexedDB.open('firebaseLocalStorageDb');
+                            req.onsuccess = function(event) {
+                                try {
+                                    const db = event.target.result;
+                                    const tx = db.transaction(['firebaseLocalStorage'], 'readonly');
+                                    const store = tx.objectStore('firebaseLocalStorage');
+                                    const getAllReq = store.getAll();
+                                    getAllReq.onsuccess = function() {
+                                        const results = getAllReq.result || [];
+                                        for (const entry of results) {
+                                            try {
+                                                const parsed = JSON.parse(entry.value || entry.data || '{}');
+                                                if (parsed && (parsed.email || parsed.displayName || parsed.uid)) {
+                                                    setAuthUser({ email: parsed.email || null, name: parsed.displayName || null, uid: parsed.uid || null });
+                                                    return;
+                                                }
+                                            } catch (e) {}
+                                        }
+                                    };
+                                } catch (e) {}
+                            };
+                            req.onerror = function() { /* ignore */ };
+                        } catch (e) {
+                            // ignore indexedDB errors
+                        }
+
+                        // no auth found
+                        console.log('[Auth Debug] No auth found');
+                        setAuthUser(null);
+                    } catch (err) {
+                        console.error('[Auth Debug] Error:', err);
+                        setAuthUser(null);
+                    }
+                };
+
+                findAuthUser();
+
+                // Listen for storage events (sign-in from other tab or redirect)
+                const onStorage = (e) => {
+                    if (!e.key) {
+                        findAuthUser();
+                        return;
+                    }
+                    if (e.key.startsWith('firebase:authUser:')) {
+                        findAuthUser();
+                    }
+                };
+                window.addEventListener('storage', onStorage);
+                return () => window.removeEventListener('storage', onStorage);
+            }, []);
+
+            // Load items from Firestore when user signs in
+            useEffect(() => {
+                if (authUser && authUser.uid) {
+                    console.log('[Firestore] Loading items for user:', authUser.uid);
+                    const db = firebase.firestore();
+                    
+                    // First, do a one-time get to check if cloud data exists
+                    let isFirstLoad = true;
+                    db.collection('users').doc(authUser.uid).get().then(doc => {
+                        if (doc.exists && doc.data().items && doc.data().items.length > 0) {
+                            console.log('[Firestore] Found', doc.data().items.length, 'items in cloud, loading...');
+                            setItems(doc.data().items);
+                            isFirstLoad = false;
+                        } else {
+                            console.log('[Firestore] No cloud data found');
+                            // Push current localStorage items to Firestore if we have any
+                            const localItems = items.length > 0 ? items : [];
+                            if (localItems.length > 0) {
+                                console.log('[Firestore] Uploading', localItems.length, 'items from localStorage to cloud');
+                                db.collection('users').doc(authUser.uid).set({
+                                    items: localItems,
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }).then(() => {
+                                    console.log('[Firestore] Initial upload complete');
+                                }).catch(err => {
+                                    console.error('[Firestore] Upload error:', err);
+                                    alert('Failed to sync items to cloud: ' + err.message);
+                                });
+                            }
+                        }
+                    }).catch(err => {
+                        console.error('[Firestore] Load error:', err);
+                        alert('Failed to load cloud data: ' + err.message);
+                    });
+                    
+                    // Then set up real-time listener for future changes
+                    const unsubscribe = db.collection('users').doc(authUser.uid).onSnapshot(doc => {
+                        if (doc.exists && doc.data().items) {
+                            // Skip the first snapshot since we already loaded it above
+                            if (isFirstLoad) {
+                                isFirstLoad = false;
+                                return;
+                            }
+                            // Only update if this is from the server (remote change or server confirmation)
+                            // Skip local pending writes to avoid applying our own changes twice
+                            if (!doc.metadata.hasPendingWrites) {
+                                console.log('[Firestore] Real-time update from server:', doc.data().items.length, 'items');
+                                setItems(doc.data().items);
+                            } else {
+                                console.log('[Firestore] Skipping local pending write');
+                            }
+                        }
+                    }, err => {
+                        console.error('[Firestore] Listener error:', err);
+                    });
+                    
+                    return () => unsubscribe();
+                }
+            }, [authUser]);
+
+            const handleSignOut = async () => {
+                // Try to use firebase SDK if available
+                try {
+                    if (window.firebase && window.firebase.auth) {
+                        await window.firebase.auth().signOut();
+                    } else if (window.firebaseAuth && window.firebaseAuth.signOut) {
+                        // some globals may expose auth differently
+                        await window.firebaseAuth.signOut();
+                    } else {
+                        // Fallback: remove firebase auth keys from localStorage (local sign-out)
+                        const keysToRemove = [];
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (!key) continue;
+                            if (key.startsWith('firebase:authUser:') || key.startsWith('firebase:authToken:') || key.startsWith('firebase:')) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                        keysToRemove.forEach(k => localStorage.removeItem(k));
+                    }
+                } catch (err) {
+                    console.warn('Sign-out via SDK failed, falling back to local clear');
+                    // continue to fallback
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (!key) continue;
+                        if (key.startsWith('firebase:authUser:') || key.startsWith('firebase:authToken:') || key.startsWith('firebase:')) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                }
+
+                setAuthUser(null);
+                // reload to ensure UI and any auth-dependent code refreshes
+                try { window.location.reload(); } catch (e) { /* ignore */ }
+            };
+
+            useEffect(() => {
+                const loadData = () => {
+                    try {
+                        const saved = localStorage.getItem('sl-tracker-items');
+                        if (saved) {
+                            setItems(JSON.parse(saved));
+                        }
+                        const savedDarkMode = localStorage.getItem('sl-tracker-darkmode');
+                        if (savedDarkMode === 'true') {
+                            setDarkMode(true);
+                            document.body.classList.add('dark-mode');
+                        }
+                        const savedLists = localStorage.getItem('sl-tracker-custom-lists');
+                        if (savedLists) {
+                            setCustomLists(JSON.parse(savedLists));
+                        }
+                        // Load custom options
+                        const savedHeads = localStorage.getItem('sl-tracker-custom-heads');
+                        if (savedHeads) setCustomHeads(JSON.parse(savedHeads));
+                        const savedBodies = localStorage.getItem('sl-tracker-custom-bodies');
+                        if (savedBodies) setCustomBodies(JSON.parse(savedBodies));
+                        const savedHairstyles = localStorage.getItem('sl-tracker-custom-hairstyles');
+                        if (savedHairstyles) setCustomHairstyles(JSON.parse(savedHairstyles));
+                        const savedClothingTypes = localStorage.getItem('sl-tracker-custom-clothing-types');
+                        if (savedClothingTypes) setCustomClothingTypes(JSON.parse(savedClothingTypes));
+                        const savedCustomFields = localStorage.getItem('sl-tracker-custom-fields');
+                        if (savedCustomFields) setCustomFields(JSON.parse(savedCustomFields));
+                    } catch (error) {
+                        console.log('No existing data found');
+                    }
+                };
+                loadData();
+
+                // Keyboard shortcuts
+                const handleKeyPress = (e) => {
+                    // Don't trigger if user is typing in an input
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                        return;
+                    }
+
+                    switch(e.key.toLowerCase()) {
+                        case 'a':
+                            if (!showAddForm) {
+                                setShowAddForm(true);
+                            }
+                            break;
+                        case 'escape':
+                            setShowAddForm(false);
+                            setShowEditModal(false);
+                            setShowListManager(false);
+                            setBulkMode(false);
+                            setSelectedItems([]);
+                            break;
+                        case 'b':
+                            setBulkMode(!bulkMode);
+                            setSelectedItems([]);
+                            break;
+                        case 's':
+                            if (e.ctrlKey || e.metaKey) {
+                                e.preventDefault();
+                                exportData();
+                            }
+                            break;
+                    }
+                };
+
+                document.addEventListener('keydown', handleKeyPress);
+                return () => document.removeEventListener('keydown', handleKeyPress);
+            }, [showAddForm, bulkMode]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-lists', JSON.stringify(customLists));
+                } catch (error) {
+                    console.error('Error saving lists:', error);
+                }
+            }, [customLists]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-heads', JSON.stringify(customHeads));
+                } catch (error) {
+                    console.error('Error saving custom heads:', error);
+                }
+            }, [customHeads]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-bodies', JSON.stringify(customBodies));
+                } catch (error) {
+                    console.error('Error saving custom bodies:', error);
+                }
+            }, [customBodies]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-hairstyles', JSON.stringify(customHairstyles));
+                } catch (error) {
+                    console.error('Error saving custom hairstyles:', error);
+                }
+            }, [customHairstyles]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-clothing-types', JSON.stringify(customClothingTypes));
+                } catch (error) {
+                    console.error('Error saving custom clothing types:', error);
+                }
+            }, [customClothingTypes]);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-custom-fields', JSON.stringify(customFields));
+                } catch (error) {
+                    console.error('Error saving custom fields:', error);
+                }
+            }, [customFields]);
+
+            const toggleDarkMode = () => {
+                const newDarkMode = !darkMode;
+                setDarkMode(newDarkMode);
+                localStorage.setItem('sl-tracker-darkmode', newDarkMode);
+                if (newDarkMode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            };
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem('sl-tracker-items', JSON.stringify(items));
+                    
+                    // Sync to Firestore if user is signed in
+                    if (authUser && authUser.uid) {
+                        const db = firebase.firestore();
+                        db.collection('users').doc(authUser.uid).set({
+                            items: items,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true })
+                        .then(() => console.log('[Firestore] Items synced'))
+                        .catch(err => console.error('[Firestore] Sync error:', err));
+                    }
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                }
+            }, [items, authUser]);
+
+            const addCustomList = () => {
+                if (newListName.trim()) {
+                    const newList = {
+                        id: Date.now(),
+                        name: newListName.trim(),
+                        icon: '📋',
+                        createdAt: new Date().toISOString()
+                    };
+                    setCustomLists([...customLists, newList]);
+                    setNewListName('');
+                }
+            };
+
+            const deleteCustomList = (listId) => {
+                if (confirm('🗑️ Delete this list? Items in this list will move to Wishlist.')) {
+                    setItems(items.map(item => 
+                        item.customListId === listId 
+                            ? { ...item, customListId: null, status: STATUSES.WISHLIST }
+                            : item
+                    ));
+                    setCustomLists(customLists.filter(list => list.id !== listId));
+                    if (selectedCustomList === listId) {
+                        setSelectedCustomList(null);
+                    }
+                }
+            };
+
+            const editCustomListName = (listId, newName) => {
+                if (newName.trim()) {
+                    setCustomLists(customLists.map(list => 
+                        list.id === listId ? { ...list, name: newName.trim() } : list
+                    ));
+                }
+            };
+
+            const toggleItemSelection = (itemId) => {
+                setSelectedItems(prev =>
+                    prev.includes(itemId)
+                        ? prev.filter(id => id !== itemId)
+                        : [...prev, itemId]
+                );
+            };
+
+            const selectAllItems = () => {
+                const currentItems = getFilteredItems();
+                setSelectedItems(currentItems.map(item => item.id));
+            };
+
+            const deselectAll = () => {
+                setSelectedItems([]);
+            };
+
+            const bulkDelete = () => {
+                if (confirm(`🗑️ Delete ${selectedItems.length} items?`)) {
+                    setItems(items.filter(item => !selectedItems.includes(item.id)));
+                    setSelectedItems([]);
+                    setBulkMode(false);
+                }
+            };
+
+            const bulkMoveTo = (newStatus) => {
+                setItems(items.map(item =>
+                    selectedItems.includes(item.id) ? { ...item, status: newStatus } : item
+                ));
+                setSelectedItems([]);
+                setBulkMode(false);
+            };
+
+            const copyToClipboard = (text, label) => {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(`✅ ${label} copied to clipboard!`);
+                });
+            };
+
+            const globalSearchItems = () => {
+                if (!globalSearch.trim()) return [];
+                
+                const searchLower = globalSearch.toLowerCase();
+                return items.filter(item => 
+                    item.name.toLowerCase().includes(searchLower) ||
+                    item.store.toLowerCase().includes(searchLower) ||
+                    item.tags.toLowerCase().includes(searchLower) ||
+                    item.notes.toLowerCase().includes(searchLower) ||
+                    item.category.toLowerCase().includes(searchLower)
+                );
+            };
+
+            const uploadToImgBB = async (file) => {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const response = await fetch('https://api.imgbb.com/1/upload?key=fecb6b8c48020815465bbc22d8c0e7b0', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        return data.data.url;
+                    } else {
+                        throw new Error('Upload failed');
+                    }
+                } catch (error) {
+                    console.error('ImgBB upload error:', error);
+                    return null;
+                }
+            };
+
+            const handleImageSelect = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    setImageFile(file);
+                    const reader = new FileReader();
+                    reader.onload = (e) => setImagePreview(e.target.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handlePaste = (e) => {
+                const items = e.clipboardData.items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') !== -1) {
+                        const file = item.getAsFile();
+                        setImageFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (e) => setImagePreview(e.target.result);
+                        reader.readAsDataURL(file);
+                        break;
+                    }
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                
+                let imageUrl = formData.image;
+                
+                if (imageFile) {
+                    setUploading(true);
+                    imageUrl = await uploadToImgBB(imageFile);
+                    setUploading(false);
+                    
+                    if (!imageUrl) {
+                        alert('⚠️ Image upload failed. Item will be saved without image.');
+                    }
+                }
+
+                const newItem = {
+                    id: editingId || Date.now(),
+                    ...formData,
+                    image: imageUrl,
+                    customListId: selectedCustomList || null,
+                    createdAt: editingId ? items.find(i => i.id === editingId).createdAt : new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (editingId) {
+                    setItems(items.map(item => item.id === editingId ? newItem : item));
+                } else {
+                    setItems([...items, newItem]);
+                }
+
+                resetForm();
+            };
+
+            const resetForm = () => {
+                // Set default status based on active tab
+                let defaultStatus = STATUSES.WISHLIST;
+                if (activeTab === 'shopping') defaultStatus = STATUSES.SHOPPING;
+                if (activeTab === 'sort') defaultStatus = STATUSES.SORT;
+                if (activeTab === 'inventory') defaultStatus = STATUSES.INVENTORY;
+                
+                setFormData({
+                    name: '',
+                    store: '',
+                    category: '',
+                    subcategory: '',
+                    status: defaultStatus,
+                    tags: '',
+                    notes: '',
+                    price: '',
+                    link: '',
+                    landmark: '',
+                    image: '',
+                    // Extended fields
+                    color: '',
+                    head: '',
+                    body: '',
+                    hairstyleType: '',
+                    clothingType: '',
+                    bakesOnMesh: '',
+                    customFieldValues: {}
+                });
+                setImageFile(null);
+                setImagePreview('');
+                setEditingId(null);
+                setShowEditModal(false);
+                setShowAddForm(false);
+                // Only reset selectedCustomList if we're not in a custom list view
+                if (activeTab !== 'custom') {
+                    setSelectedCustomList(null);
+                }
+            };
+
+            const deleteItem = (id) => {
+                if (confirm('🗑️ Are you sure you want to delete this item?')) {
+                    setItems(items.filter(item => item.id !== id));
+                }
+            };
+
+            const editItem = (item) => {
+                setFormData({
+                    name: item.name,
+                    store: item.store,
+                    category: item.category,
+                    subcategory: item.subcategory || '',
+                    status: item.status,
+                    tags: item.tags,
+                    notes: item.notes,
+                    price: item.price || '',
+                    link: item.link,
+                    landmark: item.landmark,
+                    image: item.image,
+                    // Extended fields
+                    color: item.color || '',
+                    head: item.head || '',
+                    body: item.body || '',
+                    hairstyleType: item.hairstyleType || '',
+                    clothingType: item.clothingType || '',
+                    bakesOnMesh: item.bakesOnMesh || '',
+                    customFieldValues: item.customFieldValues || {}
+                });
+                setImagePreview(item.image);
+                setEditingId(item.id);
+                setSelectedCustomList(item.customListId || null);
+                setShowEditModal(true);
+            };
+
+            const updateStatus = (id, newStatus) => {
+                setItems(items.map(item => 
+                    item.id === id ? { ...item, status: newStatus, updatedAt: new Date().toISOString() } : item
+                ));
+            };
+
+            const getFilteredItems = () => {
+                let statusFilter;
+                
+                // Handle custom lists
+                if (activeTab === 'custom' && selectedCustomList) {
+                    return items.filter(item => item.customListId === selectedCustomList);
+                }
+                
+                switch(activeTab) {
+                    case 'wishlist':
+                        statusFilter = STATUSES.WISHLIST;
+                        break;
+                    case 'shopping':
+                        statusFilter = STATUSES.SHOPPING;
+                        break;
+                    case 'sort':
+                        statusFilter = STATUSES.SORT;
+                        break;
+                    case 'inventory':
+                        statusFilter = STATUSES.INVENTORY;
+                        break;
+                    default:
+                        return items;
+                }
+                
+                return items.filter(item => {
+                    const matchesStatus = item.status === statusFilter;
+                    const notInCustomList = !item.customListId; // Only show items not in custom lists
+                    
+                    if (activeTab === 'inventory') {
+                        const matchesSearch = searchTerm === '' || 
+                            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.store.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.tags.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.notes.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesCategory = filterCategory === '' || item.category === filterCategory;
+                        const matchesCreator = filterCreator === '' || item.store === filterCreator;
+                        
+                        return matchesStatus && matchesSearch && matchesCategory && matchesCreator;
+                    }
+                    
+                    return matchesStatus && notInCustomList;
+                });
+            };
+
+            const getUniqueCreators = () => {
+                return [...new Set(items.map(item => item.store).filter(Boolean))];
+            };
+
+            const getTotalPrice = (status) => {
+                return items
+                    .filter(item => item.status === status && item.price)
+                    .reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+            };
+
+            const getItemCount = (status) => {
+                return items.filter(item => item.status === status).length;
+            };
+
+            const getCategoryIcon = (categoryName) => {
+                const cat = CATEGORIES.find(c => c.name === categoryName);
+                return cat ? cat.icon : '📦';
+            };
+
+            const getCategoryClass = (categoryName) => {
+                return 'category-' + categoryName.replace(/[^a-zA-Z]/g, '-');
+            };
+
+            const getStatusBadgeClass = (status) => {
+                if (status.includes('Wishlist')) return 'status-wishlist';
+                if (status.includes('Shopping')) return 'status-shopping';
+                if (status.includes('Purchased')) return 'status-purchased';
+                if (status.includes('Inventory')) return 'status-inventory';
+                return '';
+            };
+
+            const exportData = () => {
+                const dataStr = JSON.stringify(items, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `sl-tracker-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            };
+
+            const importData = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            if (confirm('📥 This will merge with existing data. Continue?')) {
+                                setItems([...items, ...imported]);
+                            }
+                        } catch (error) {
+                            alert('❌ Invalid JSON file');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            const clearAllData = () => {
+                if (confirm('⚠️ This will permanently delete all your items! Are you sure?')) {
+                    if (confirm('🚨 This cannot be undone. Are you absolutely sure?')) {
+                        setItems([]);
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-screen pb-8">
+                    {/* Header */}
+                    <div className="sl-header text-white py-6 px-4 mb-6" style={{position: 'relative'}}>
+                        <div style={{position: 'absolute', right: 20, top: 18, textAlign: 'right'}}>
+                            {authUser ? (
+                                <div className="text-sm font-semibold bg-white/10 px-3 py-1 rounded flex items-center gap-3">
+                                    <span>Signed in as</span>
+                                    <span className="underline">{authUser.email || authUser.name}</span>
+                                    <button onClick={handleSignOut} className="ml-2 bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-sm">Sign out</button>
+                                </div>
+                            ) : (
+                                <button 
+                                    onClick={async () => {
+                                        try {
+                                            // Lazy-load Firebase if not already loaded
+                                            await window.loadFirebase();
+                                            
+                                            const provider = new window.firebase.auth.GoogleAuthProvider();
+                                            await window.firebase.auth().signInWithPopup(provider);
+                                            console.log('[Auth] Sign-in successful');
+                                        } catch (err) {
+                                            console.error('[Auth] Sign-in error:', err);
+                                            alert('Sign-in failed: ' + err.message);
+                                        }
+                                    }}
+                                    className="text-sm font-semibold bg-white/20 hover:bg-white/30 px-4 py-2 rounded transition"
+                                >
+                                    🔐 Sign in with Google
+                                </button>
+                            )}
+                        </div>
+                        <div className="max-w-7xl mx-auto text-center">
+                            <h1 
+                                className="text-3xl md:text-4xl font-bold mb-2 flex items-center justify-center gap-3 cursor-pointer hover:opacity-80 transition"
+                                onClick={() => { setActiveTab('wishlist'); setShowAddForm(false); setSelectedCustomList(null); }}
+                            >
+                                <span>🛍️</span>
+                                <span>Second Life Shopping Tracker</span>
+                            </h1>
+                            <p className="text-blue-100 text-lg mb-4">Track your wishlist, shopping & inventory! ✨</p>
+                            
+                            {/* Global Search */}
+                            <div className="max-w-2xl mx-auto">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={globalSearch}
+                                        onChange={(e) => setGlobalSearch(e.target.value)}
+                                        onFocus={() => setShowGlobalSearch(true)}
+                                        placeholder="🔍 Search across all items... (press / to focus)"
+                                        className="w-full px-6 py-3 rounded-full border-2 border-blue-300 focus:border-white focus:outline-none input-field"
+                                        style={{fontSize: '16px'}}
+                                    />
+                                    {globalSearch && (
+                                        <button
+                                            onClick={() => { setGlobalSearch(''); setShowGlobalSearch(false); }}
+                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 text-xl"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4">
+                        {/* Navigation Tabs */}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            <button
+                                onClick={() => { setActiveTab('wishlist'); setShowAddForm(false); setSelectedCustomList(null); }}
+                                className={`tab-btn ${activeTab === 'wishlist' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                ⭐ Wishlist
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('shopping'); setShowAddForm(false); setSelectedCustomList(null); }}
+                                className={`tab-btn ${activeTab === 'shopping' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                🛒 Shopping List
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('sort'); setShowAddForm(false); setSelectedCustomList(null); }}
+                                className={`tab-btn ${activeTab === 'sort' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                📦 Sort
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('inventory'); setShowAddForm(false); setSelectedCustomList(null); }}
+                                className={`tab-btn ${activeTab === 'inventory' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                ✅ Inventory
+                            </button>
+                            
+                            <button
+                                onClick={() => setShowListManager(true)}
+                                className="tab-btn tab-inactive"
+                            >
+                                ➕ Manage Lists
+                            </button>
+                            
+                            <button
+                                onClick={() => { setActiveTab('settings'); setShowAddForm(false); setSelectedCustomList(null); }}
+                                className={`tab-btn ${activeTab === 'settings' ? 'tab-active' : 'tab-inactive'}`}
+                            >
+                                ⚙️ Settings
+                            </button>
+                        </div>
+
+                        {/* Global Search Results */}
+                        {globalSearch && showGlobalSearch && (
+                            <div className="product-card p-6 mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                        <span>🔍</span>
+                                        <span>Search Results for "{globalSearch}"</span>
+                                    </h3>
+                                    <button
+                                        onClick={() => { setGlobalSearch(''); setShowGlobalSearch(false); }}
+                                        className="text-gray-500 hover:text-gray-700 text-xl"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Found {globalSearchItems().length} {globalSearchItems().length === 1 ? 'item' : 'items'}
+                                </p>
+                                {globalSearchItems().length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <div className="text-6xl mb-4">🔍</div>
+                                        <p>No items found matching your search.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {globalSearchItems().map(item => (
+                                            <div key={item.id} className="product-card overflow-hidden item-card">
+                                                {item.image && (
+                                                    <img 
+                                                        src={item.image} 
+                                                        alt={item.name} 
+                                                        className="w-full h-48 object-contain bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+                                                        onClick={() => setLightboxImage(item.image)}
+                                                    />
+                                                )}
+                                                <div className="p-4">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <h3 className="font-bold text-lg text-gray-800 flex-1">{item.name}</h3>
+                                                        <span className={`status-badge text-xs`}>
+                                                            {item.status.split(' - ')[0]}
+                                                        </span>
+                                                    </div>
+                                                    {item.store && <p className="text-gray-600 mb-2">🏪 {item.store}</p>}
+                                                    {item.category && (
+                                                        <div className="mb-2">
+                                                            <span className={`category-badge ${getCategoryClass(item.category)}`}>
+                                                                {getCategoryIcon(item.category)} {item.category}
+                                                            </span>
+                                                            {item.subcategory && (
+                                                                <span className="text-sm text-gray-600 ml-2">→ {item.subcategory}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {item.price && (
+                                                        <p className="font-bold mt-2" style={{color: '#ffd700'}}>
+                                                            💰 L$ {parseFloat(item.price).toLocaleString()}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex gap-2 mt-3">
+                                                        <button
+                                                            onClick={() => editItem(item)}
+                                                            className="flex-1 sl-blue-btn py-2 rounded text-sm"
+                                                        >
+                                                            ✏️ Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteItem(item.id)}
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-semibold transition text-sm"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Wishlist, Shopping List, Sort, and Custom Lists Tabs */}
+                        {(activeTab === 'wishlist' || activeTab === 'shopping' || activeTab === 'sort' || activeTab === 'custom') && (
+                            <div>
+                                {/* Add New Item Button / Form */}
+                                {!showAddForm ? (
+                                    <div className="flex gap-3 mb-6">
+                                        <button
+                                            onClick={() => setShowAddForm(true)}
+                                            className="flex-1 sl-orange-btn py-4 rounded-lg text-xl flex items-center justify-center gap-2"
+                                        >
+                                            <span>➕</span>
+                                            <span>Add Item</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setShowListManager(true)}
+                                            className="sl-blue-btn px-6 py-4 rounded-lg text-lg flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <span>📋</span>
+                                            <span>Create List</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setBulkMode(!bulkMode)}
+                                            className={`${bulkMode ? 'bg-green-500 hover:bg-green-600' : 'bg-purple-500 hover:bg-purple-600'} text-white px-6 py-4 rounded-lg text-lg flex items-center gap-2 whitespace-nowrap font-semibold transition`}
+                                        >
+                                            <span>{bulkMode ? '✅' : '☑️'}</span>
+                                            <span>{bulkMode ? 'Exit Bulk' : 'Bulk Edit'}</span>
+                                        </button>
+                                    </div>
+                                ) : (
+                                <div className="product-card p-6 mb-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                            {activeTab === 'wishlist' && (
+                                                <>
+                                                    <span>⭐</span>
+                                                    <span>Add to Wishlist</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'shopping' && (
+                                                <>
+                                                    <span>🛒</span>
+                                                    <span>Add to Shopping List</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'sort' && (
+                                                <>
+                                                    <span>📦</span>
+                                                    <span>Add to Sort</span>
+                                                </>
+                                            )}
+                                            {activeTab === 'custom' && (
+                                                <>
+                                                    <span>{customLists.find(l => l.id === selectedCustomList)?.icon}</span>
+                                                    <span>Add to {customLists.find(l => l.id === selectedCustomList)?.name}</span>
+                                                </>
+                                            )}
+                                        </h2>
+                                        <button
+                                            onClick={() => setShowAddForm(false)}
+                                            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📝 Item/Sale Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g., Winter Wonderland Backdrop, Gothic Dress"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🏪 Store/Creator Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., Truth Hair, Blueberry, The Arcade"
+                                                value={formData.store}
+                                                onChange={(e) => setFormData({...formData, store: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📁 Category
+                                            </label>
+                                            <select
+                                                value={formData.category}
+                                                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                                className="w-full input-field"
+                                            >
+                                                <option value="">Select a category (optional)</option>
+                                                {CATEGORIES.map(cat => (
+                                                    <option key={cat.name} value={cat.name}>
+                                                        {cat.icon} {cat.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Home & Garden Subcategory */}
+                                        {formData.category === 'Home & Garden' && (
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                    🏡 Subcategory
+                                                </label>
+                                                <select
+                                                    value={formData.subcategory}
+                                                    onChange={(e) => setFormData({...formData, subcategory: e.target.value})}
+                                                    className="w-full input-field"
+                                                >
+                                                    <option value="">Select type...</option>
+                                                    {HOME_GARDEN_OPTIONS.map(option => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🏷️ Status *
+                                            </label>
+                                            <select
+                                                value={formData.status}
+                                                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                                className="w-full input-field"
+                                            >
+                                                {Object.values(STATUSES).map(status => (
+                                                    <option key={status} value={status}>{status}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {customLists.length > 0 && (
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                    📋 Add to Custom List (Optional)
+                                                </label>
+                                                <select
+                                                    value={selectedCustomList || ''}
+                                                    onChange={(e) => setSelectedCustomList(e.target.value ? parseInt(e.target.value) : null)}
+                                                    className="w-full input-field"
+                                                >
+                                                    <option value="">None - Use regular list</option>
+                                                    {customLists.map(list => (
+                                                        <option key={list.id} value={list.id}>
+                                                            {list.icon} {list.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-sm text-gray-500 mt-1">💡 Items in custom lists won't appear in regular Wishlist/Shopping tabs</p>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🏷️ Tags (comma-separated)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., winter, fantasy, formal, mesh, #sale"
+                                                value={formData.tags}
+                                                onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">💡 Add tags to help you find items later</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                💰 Price (L$)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                placeholder="e.g., 299"
+                                                value={formData.price}
+                                                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                                className="w-full input-field"
+                                                min="0"
+                                                step="1"
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">💡 Track how much items cost</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📄 Notes (Optional)
+                                            </label>
+                                            <textarea
+                                                placeholder="Add notes, pricing info, color preferences, etc."
+                                                value={formData.notes}
+                                                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                                className="w-full input-field h-24"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                🔗 Main Store Link
+                                            </label>
+                                            <input
+                                                type="url"
+                                                placeholder="https://marketplace.secondlife.com/..."
+                                                value={formData.link}
+                                                onChange={(e) => setFormData({...formData, link: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📍 In-World Landmark/SLURL
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="secondlife://Region/128/128/23 or landmark info"
+                                                value={formData.landmark}
+                                                onChange={(e) => setFormData({...formData, landmark: e.target.value})}
+                                                className="w-full input-field"
+                                            />
+                                        </div>
+
+                                        {/* Extended Fields - Only show for Sort or Inventory status */}
+                                        {(formData.status.includes('Sort') || formData.status.includes('Inventory')) && (
+                                            <div className="space-y-4 border-t-2 border-purple-300 pt-4 mt-4">
+                                                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                                    <span>✨</span>
+                                                    <span>Additional Details (Optional)</span>
+                                                </h3>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold mb-2 text-gray-700">🎨 Color</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.color}
+                                                        onChange={(e) => setFormData({...formData, color: e.target.value})}
+                                                        placeholder="e.g., Black, Red, Blue"
+                                                        className="w-full input-field"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold mb-2 text-gray-700">👤 Head</label>
+                                                    <select
+                                                        value={formData.head}
+                                                        onChange={(e) => setFormData({...formData, head: e.target.value})}
+                                                        className="w-full input-field"
+                                                    >
+                                                        <option value="">Select head...</option>
+                                                        {HEAD_OPTIONS.concat(customHeads).map(head => (
+                                                            <option key={head} value={head}>{head}</option>
+                                                        ))}
+                                                        <option value="__add_new__">➕ Add New Head...</option>
+                                                    </select>
+                                                    {formData.head === '__add_new__' && (
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter new head name and press Enter"
+                                                            className="w-full input-field mt-2"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    e.preventDefault();
+                                                                    setCustomHeads([...customHeads, e.target.value.trim()]);
+                                                                    setFormData({...formData, head: e.target.value.trim()});
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold mb-2 text-gray-700">💪 Body</label>
+                                                    <select
+                                                        value={formData.body}
+                                                        onChange={(e) => setFormData({...formData, body: e.target.value})}
+                                                        className="w-full input-field"
+                                                    >
+                                                        <option value="">Select body...</option>
+                                                        {BODY_OPTIONS.concat(customBodies).map(body => (
+                                                            <option key={body} value={body}>{body}</option>
+                                                        ))}
+                                                        <option value="__add_new__">➕ Add New Body...</option>
+                                                    </select>
+                                                    {formData.body === '__add_new__' && (
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter new body name and press Enter"
+                                                            className="w-full input-field mt-2"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    e.preventDefault();
+                                                                    setCustomBodies([...customBodies, e.target.value.trim()]);
+                                                                    setFormData({...formData, body: e.target.value.trim()});
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold mb-2 text-gray-700">💇 Hairstyle Type</label>
+                                                    <select
+                                                        value={formData.hairstyleType}
+                                                        onChange={(e) => setFormData({...formData, hairstyleType: e.target.value})}
+                                                        className="w-full input-field"
+                                                    >
+                                                        <option value="">Select hairstyle type...</option>
+                                                        {HAIRSTYLE_OPTIONS.concat(customHairstyles).map(style => (
+                                                            <option key={style} value={style}>{style}</option>
+                                                        ))}
+                                                        <option value="__add_new__">➕ Add New Hairstyle Type...</option>
+                                                    </select>
+                                                    {formData.hairstyleType === '__add_new__' && (
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter new hairstyle type and press Enter"
+                                                            className="w-full input-field mt-2"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    e.preventDefault();
+                                                                    setCustomHairstyles([...customHairstyles, e.target.value.trim()]);
+                                                                    setFormData({...formData, hairstyleType: e.target.value.trim()});
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold mb-2 text-gray-700">👗 Clothing Type</label>
+                                                    <select
+                                                        value={formData.clothingType}
+                                                        onChange={(e) => setFormData({...formData, clothingType: e.target.value})}
+                                                        className="w-full input-field"
+                                                    >
+                                                        <option value="">Select clothing type...</option>
+                                                        {CLOTHING_OPTIONS.concat(customClothingTypes).map(type => (
+                                                            <option key={type} value={type}>{type}</option>
+                                                        ))}
+                                                        <option value="__add_new__">➕ Add New Clothing Type...</option>
+                                                    </select>
+                                                    {formData.clothingType === '__add_new__' && (
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter new clothing type and press Enter"
+                                                            className="w-full input-field mt-2"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    e.preventDefault();
+                                                                    setCustomClothingTypes([...customClothingTypes, e.target.value.trim()]);
+                                                                    setFormData({...formData, clothingType: e.target.value.trim()});
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-semibold mb-2 text-gray-700">🎭 Bakes on Mesh</label>
+                                                    <div className="flex gap-4">
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="bakesOnMeshAdd"
+                                                                value="Yes"
+                                                                checked={formData.bakesOnMesh === 'Yes'}
+                                                                onChange={(e) => setFormData({...formData, bakesOnMesh: e.target.value})}
+                                                                className="bulk-checkbox"
+                                                            />
+                                                            <span className="text-gray-700">Yes</span>
+                                                        </label>
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="bakesOnMeshAdd"
+                                                                value="No"
+                                                                checked={formData.bakesOnMesh === 'No'}
+                                                                onChange={(e) => setFormData({...formData, bakesOnMesh: e.target.value})}
+                                                                className="bulk-checkbox"
+                                                            />
+                                                            <span className="text-gray-700">No</span>
+                                                        </label>
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="bakesOnMeshAdd"
+                                                                value=""
+                                                                checked={formData.bakesOnMesh === ''}
+                                                                onChange={(e) => setFormData({...formData, bakesOnMesh: e.target.value})}
+                                                                className="bulk-checkbox"
+                                                            />
+                                                            <span className="text-gray-700">Not specified</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
+                                                📷 Product Image
+                                            </label>
+                                            <div 
+                                                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer bg-gray-50"
+                                                onPaste={handlePaste}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageSelect}
+                                                    className="hidden"
+                                                    id="imageUpload"
+                                                />
+                                                <label htmlFor="imageUpload" className="cursor-pointer">
+                                                    {imagePreview ? (
+                                                        <img src={imagePreview} alt="Preview" className="max-w-full max-h-64 mx-auto rounded" />
+                                                    ) : (
+                                                        <div className="text-gray-500">
+                                                            <div className="text-5xl mb-2">📷</div>
+                                                            <p className="font-semibold">Click to upload or drag & drop</p>
+                                                            <p className="text-sm">You can also paste (Ctrl/Cmd + V)</p>
+                                                        </div>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={uploading}
+                                            className="w-full sl-orange-btn py-3 rounded-lg text-lg disabled:opacity-50"
+                                        >
+                                            {uploading ? '⏳ Uploading...' : (
+                                                activeTab === 'wishlist' ? '⭐ Add to Wishlist' :
+                                                activeTab === 'shopping' ? '🛒 Add to Shopping List' :
+                                                '✅ Add Purchased Item'
+                                            )}
+                                        </button>
+                                    </form>
+                                </div>
+                                )}
+
+                                {/* My Custom Lists Section */}
+                                {customLists.length > 0 && (
+                                    <div className="product-card p-6 mb-6">
+                                        <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                                            <span>📚</span>
+                                            <span>My Custom Lists</span>
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {customLists.map(list => (
+                                                <button
+                                                    key={list.id}
+                                                    onClick={() => {
+                                                        setSelectedCustomList(list.id);
+                                                        setActiveTab('custom');
+                                                    }}
+                                                    className="product-card p-4 text-left hover:scale-105 transition-transform"
+                                                >
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <span className="text-3xl">{list.icon}</span>
+                                                        <div className="flex-1">
+                                                            <div className="font-bold text-gray-800">{list.name}</div>
+                                                            <div className="text-sm" style={{color: '#ffd700'}}>
+                                                                {items.filter(item => item.customListId === list.id).length} {items.filter(item => item.customListId === list.id).length === 1 ? 'item' : 'items'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number text-blue-600">
+                                            {getItemCount(
+                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
+                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
+                                                activeTab === 'sort' ? STATUSES.SORT :
+                                                activeTab === 'custom' ? null :
+                                                STATUSES.INVENTORY
+                                            ) || (activeTab === 'custom' ? getFilteredItems().length : 0)}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            📦 {((activeTab === 'custom' ? getFilteredItems().length : getItemCount(
+                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
+                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
+                                                activeTab === 'sort' ? STATUSES.SORT :
+                                                STATUSES.INVENTORY
+                                            )) === 1) ? 'Item' : 'Items'}
+                                        </div>
+                                    </div>
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number" style={{color: '#ffd700'}}>
+                                            {getTotalPrice(
+                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
+                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
+                                                activeTab === 'sort' ? STATUSES.SORT :
+                                                activeTab === 'custom' ? null :
+                                                STATUSES.INVENTORY
+                                            ) || (activeTab === 'custom' ? getFilteredItems().reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0).toLocaleString()}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            💰 L$ Total
+                                        </div>
+                                    </div>
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number text-purple-600">
+                                            {getItemCount(STATUSES.WISHLIST)}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            ⭐ Wishlist
+                                        </div>
+                                    </div>
+                                    <div className="stats-card text-center">
+                                        <div className="stat-number text-green-600">
+                                            {getItemCount(STATUSES.INVENTORY)}
+                                        </div>
+                                        <div className="stat-label text-gray-600">
+                                            📦 Owned
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Items List */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {getFilteredItems().map(item => (
+                                        <div key={item.id} className="product-card overflow-hidden item-card" style={{position: 'relative'}}>
+                                            {/* Bulk Mode Checkbox */}
+                                            {bulkMode && (
+                                                <div style={{position: 'absolute', top: '10px', left: '10px', zIndex: 10}}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedItems.includes(item.id)}
+                                                        onChange={() => toggleItemSelection(item.id)}
+                                                        className="bulk-checkbox"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {item.image && (
+                                                <img 
+                                                    src={item.image} 
+                                                    alt={item.name} 
+                                                    className="w-full h-48 object-contain bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+                                                    onClick={() => setLightboxImage(item.image)}
+                                                />
+                                            )}
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-lg mb-2 text-gray-800">{item.name}</h3>
+                                                {item.store && (
+                                                    <p className="text-gray-600 mb-2 flex items-center gap-1">
+                                                        <span>🏪</span>
+                                                        <span>{item.store}</span>
+                                                    </p>
+                                                )}
+                                                {item.category && (
+                                                    <div className="mb-2">
+                                                        <span className={`category-badge ${getCategoryClass(item.category)}`}>
+                                                            {getCategoryIcon(item.category)} {item.category}
+                                                        </span>
+                                                        {item.subcategory && (
+                                                            <span className="text-sm text-gray-600 ml-2">→ {item.subcategory}</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                
+                                                {item.price && (
+                                                    <p className="font-bold mb-2 flex items-center gap-1" style={{color: '#ffd700'}}>
+                                                        <span>💰</span>
+                                                        <span>L$ {parseFloat(item.price).toLocaleString()}</span>
+                                                    </p>
+                                                )}
+
+                                                <p className="text-xs text-gray-500 mb-3">
+                                                    📅 Added {new Date(item.createdAt).toLocaleDateString()}
+                                                </p>
+                                                
+                                                {/* Quick Copy Buttons */}
+                                                {(item.link || item.landmark) && (
+                                                    <div className="flex gap-2 mb-3 flex-wrap">
+                                                        {item.link && (
+                                                            <button
+                                                                onClick={() => copyToClipboard(item.link, 'Store link')}
+                                                                className="copy-btn"
+                                                            >
+                                                                🔗 Copy Link
+                                                            </button>
+                                                        )}
+                                                        {item.landmark && (
+                                                            <button
+                                                                onClick={() => copyToClipboard(item.landmark, 'Landmark')}
+                                                                className="copy-btn"
+                                                            >
+                                                                📍 Copy SLURL
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="mb-3">
+                                                    <span className={`badge badge-${item.status.split(' ')[0]}`}>
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+
+                                                {item.tags && (
+                                                    <div className="mb-3 flex flex-wrap gap-1">
+                                                        {item.tags.split(',').map((tag, i) => (
+                                                            <span key={i} className="tag-chip">{tag.trim()}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {item.notes && (
+                                                    <p className="text-gray-600 text-sm mb-3 bg-gray-50 p-2 rounded border border-gray-200">
+                                                        💬 {item.notes}
+                                                    </p>
+                                                )}
+
+                                                <div className="flex flex-wrap gap-2 mb-3 text-sm">
+                                                    {item.link && (
+                                                        <a href={item.link} target="_blank" rel="noopener noreferrer" 
+                                                           className="text-blue-600 hover:text-blue-800 font-semibold">
+                                                            🔗 Marketplace
+                                                        </a>
+                                                    )}
+                                                    {item.landmark && (
+                                                        <span className="text-purple-600 font-semibold">📍 Landmark</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="border-t pt-3 mt-3">
+                                                    <label className="block text-xs font-semibold mb-2 text-gray-600">Change Status:</label>
+                                                    <select
+                                                        value={item.status}
+                                                        onChange={(e) => updateStatus(item.id, e.target.value)}
+                                                        className="w-full input-field text-sm mb-3"
+                                                    >
+                                                        {Object.values(STATUSES).map(status => (
+                                                            <option key={status} value={status}>{status}</option>
+                                                        ))}
+                                                    </select>
+
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => editItem(item)}
+                                                            className="flex-1 sl-blue-btn py-2 rounded text-sm"
+                                                        >
+                                                            ✏️ Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteItem(item.id)}
+                                                            className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm font-semibold transition"
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {getFilteredItems().length === 0 && (
+                                    <div className="empty-state">
+                                        {activeTab === 'wishlist' && (
+                                            <>
+                                                <div className="empty-state-icon">⭐</div>
+                                                <h3 className="text-2xl font-bold mb-2">No wishlist items yet!</h3>
+                                                <p className="text-lg">Add items you'd like to buy someday ⬆️</p>
+                                            </>
+                                        )}
+                                        {activeTab === 'shopping' && (
+                                            <>
+                                                <div className="empty-state-icon">🛒</div>
+                                                <h3 className="text-2xl font-bold mb-2">Your shopping list is empty!</h3>
+                                                <p className="text-lg">Add items you're planning to buy soon ⬆️</p>
+                                            </>
+                                        )}
+                                        {activeTab === 'purchased' && (
+                                            <>
+                                                <div className="empty-state-icon">✅</div>
+                                                <h3 className="text-2xl font-bold mb-2">No purchased items yet!</h3>
+                                                <p className="text-lg">Items you've bought will appear here ⬆️</p>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Inventory Tab */}
+                        {activeTab === 'inventory' && (
+                            <div>
+                                <div className="product-card p-6 mb-6">
+                                    <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                        <span>🔍</span>
+                                        <span>Search Your Inventory</span>
+                                    </h2>
+                                    
+                                    <input
+                                        type="text"
+                                        placeholder="🔎 Search by name, creator, tags, or notes..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full input-field mb-4 text-lg"
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <select
+                                            value={filterCategory}
+                                            onChange={(e) => setFilterCategory(e.target.value)}
+                                            className="input-field"
+                                        >
+                                            <option value="">📁 All Categories</option>
+                                            {CATEGORIES.map(cat => (
+                                                <option key={cat.name} value={cat.name}>{cat.icon} {cat.name}</option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={filterCreator}
+                                            onChange={(e) => setFilterCreator(e.target.value)}
+                                            className="input-field"
+                                        >
+                                            <option value="">🏪 All Creators</option>
+                                            {getUniqueCreators().map(creator => (
+                                                <option key={creator} value={creator}>{creator}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <p className="text-center text-gray-600 mt-6 font-semibold">
+                                        📊 Found {getFilteredItems().length} items in your inventory
+                                    </p>
+                                </div>
+
+                                {/* Inventory Items */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {getFilteredItems().map(item => (
+                                        <div key={item.id} className="product-card overflow-hidden">
+                                            {item.image && (
+                                                <img 
+                                                    src={item.image} 
+                                                    alt={item.name} 
+                                                    className="w-full h-40 object-contain bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+                                                    onClick={() => setLightboxImage(item.image)}
+                                                />
+                                            )}
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-lg mb-2">{item.name}</h3>
+                                                {item.store && <p className="text-gray-600 mb-2">🏪 {item.store}</p>}
+                                                {item.category && <p className="text-gray-500 text-sm mb-2">{getCategoryIcon(item.category)} {item.category}</p>}
+                                                
+                                                {item.tags && (
+                                                    <div className="mb-3 flex flex-wrap gap-1">
+                                                        {item.tags.split(',').map((tag, i) => (
+                                                            <span key={i} className="tag-chip">{tag.trim()}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex gap-2 mt-3">
+                                                    <button
+                                                        onClick={() => editItem(item)}
+                                                        className="flex-1 sl-blue-btn py-2 rounded text-sm"
+                                                    >
+                                                        ✏️ Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteItem(item.id)}
+                                                        className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm font-semibold transition"
+                                                    >
+                                                        🗑️ Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {getFilteredItems().length === 0 && (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">📦</div>
+                                        <h3 className="text-2xl font-bold mb-2">No items in inventory yet</h3>
+                                        <p className="text-lg">Add items and move them to inventory to build your database! 🎯</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Settings Tab */}
+                        {activeTab === 'settings' && (
+                            <div className="product-card p-6">
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                    <span>⚙️</span>
+                                    <span>Settings & Data Management</span>
+                                </h2>
+
+                                {/* Keyboard Shortcuts */}
+                                <div className="bg-purple-50 border-l-4 border-purple-500 p-6 mb-6 rounded">
+                                    <h3 className="font-bold text-lg mb-4 text-purple-900 flex items-center gap-2">
+                                        <span>⌨️</span>
+                                        <span>Keyboard Shortcuts</span>
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="font-semibold">Press <kbd className="px-2 py-1 bg-white rounded border">A</kbd></span>
+                                            <span className="text-gray-600">Open add item form</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-semibold">Press <kbd className="px-2 py-1 bg-white rounded border">B</kbd></span>
+                                            <span className="text-gray-600">Toggle bulk edit mode</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-semibold">Press <kbd className="px-2 py-1 bg-white rounded border">Esc</kbd></span>
+                                            <span className="text-gray-600">Close modals/forms</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-semibold">Press <kbd className="px-2 py-1 bg-white rounded border">Ctrl/Cmd</kbd> + <kbd className="px-2 py-1 bg-white rounded border">S</kbd></span>
+                                            <span className="text-gray-600">Export data</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Storage Info */}
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6 rounded">
+                                    <h3 className="font-bold text-lg mb-2 text-blue-900 flex items-center gap-2">
+                                        <span>💾</span>
+                                        <span>Storage Information</span>
+                                    </h3>
+                                    <p className="mb-2"><strong>📊 Total Items:</strong> {items.length}</p>
+                                    <p className="mb-2"><strong>💿 Data Size:</strong> {(JSON.stringify(items).length / 1024).toFixed(2)} KB</p>
+                                    <p className="text-sm text-blue-700">📷 Images uploaded to ImgBB cloud storage</p>
+                                </div>
+
+                                {/* Export */}
+                                <div className="mb-6">
+                                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                        <span>📥</span>
+                                        <span>Export Your Data</span>
+                                    </h3>
+                                    <p className="text-gray-600 mb-3">Download a backup of all your items as JSON</p>
+                                    <button
+                                        onClick={exportData}
+                                        className="sl-blue-btn px-6 py-3 rounded-lg"
+                                    >
+                                        ⬇️ Export All Data
+                                    </button>
+                                </div>
+
+                                {/* Import */}
+                                <div className="mb-6">
+                                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                        <span>📤</span>
+                                        <span>Import Data</span>
+                                    </h3>
+                                    <p className="text-gray-600 mb-3">Restore from a previously exported file</p>
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        onChange={importData}
+                                        className="block w-full text-sm"
+                                    />
+                                </div>
+
+                                {/* Clear */}
+                                <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded">
+                                    <h3 className="font-bold text-lg mb-3 text-red-900 flex items-center gap-2">
+                                        <span>🗑️</span>
+                                        <span>Clear All Data</span>
+                                    </h3>
+                                    <p className="text-red-700 mb-4">⚠️ Warning: This will permanently delete all items!</p>
+                                    <button
+                                        onClick={clearAllData}
+                                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition"
+                                    >
+                                        🗑️ Clear All Data
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Edit Modal */}
+                    {showEditModal && (
+                        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                            <div className="modal-content p-6" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                    <span>✏️</span>
+                                    <span>Edit Item</span>
+                                </h2>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📝 Item Name *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🏪 Store/Creator</label>
+                                        <input
+                                            type="text"
+                                            value={formData.store}
+                                            onChange={(e) => setFormData({...formData, store: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📁 Category</label>
+                                        <select
+                                            value={formData.category}
+                                            onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                            className="w-full input-field"
+                                        >
+                                            <option value="">Select category</option>
+                                            {CATEGORIES.map(cat => (
+                                                <option key={cat.name} value={cat.name}>{cat.icon} {cat.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Home & Garden Subcategory */}
+                                    {formData.category === 'Home & Garden' && (
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2">🏡 Subcategory</label>
+                                            <select
+                                                value={formData.subcategory}
+                                                onChange={(e) => setFormData({...formData, subcategory: e.target.value})}
+                                                className="w-full input-field"
+                                            >
+                                                <option value="">Select type...</option>
+                                                {HOME_GARDEN_OPTIONS.map(option => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🏷️ Status *</label>
+                                        <select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                            className="w-full input-field"
+                                        >
+                                            {Object.values(STATUSES).map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {customLists.length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2">📋 Custom List (Optional)</label>
+                                            <select
+                                                value={selectedCustomList || ''}
+                                                onChange={(e) => setSelectedCustomList(e.target.value ? parseInt(e.target.value) : null)}
+                                                className="w-full input-field"
+                                            >
+                                                <option value="">None - Use regular list</option>
+                                                {customLists.map(list => (
+                                                    <option key={list.id} value={list.id}>
+                                                        {list.icon} {list.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-sm text-gray-500 mt-1">💡 Items in custom lists won't appear in regular Wishlist/Shopping tabs</p>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🏷️ Tags</label>
+                                        <input
+                                            type="text"
+                                            value={formData.tags}
+                                            onChange={(e) => setFormData({...formData, tags: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">💰 Price (L$)</label>
+                                        <input
+                                            type="number"
+                                            value={formData.price}
+                                            onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                            className="w-full input-field"
+                                            min="0"
+                                            step="1"
+                                            placeholder="e.g., 299"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📄 Notes</label>
+                                        <textarea
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                            className="w-full input-field h-20"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">🔗 Store Link</label>
+                                        <input
+                                            type="url"
+                                            value={formData.link}
+                                            onChange={(e) => setFormData({...formData, link: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📍 Landmark</label>
+                                        <input
+                                            type="text"
+                                            value={formData.landmark}
+                                            onChange={(e) => setFormData({...formData, landmark: e.target.value})}
+                                            className="w-full input-field"
+                                        />
+                                    </div>
+
+                                    {/* Extended Fields - Only show for Sort or Inventory status */}
+                                    {(formData.status.includes('Sort') || formData.status.includes('Inventory')) && (
+                                        <div className="space-y-4 border-t-2 border-purple-300 pt-4 mt-4">
+                                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                                <span>✨</span>
+                                                <span>Additional Details (Optional)</span>
+                                            </h3>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2">🎨 Color</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.color}
+                                                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                                                    placeholder="e.g., Black, Red, Blue"
+                                                    className="w-full input-field"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2">👤 Head</label>
+                                                <select
+                                                    value={formData.head}
+                                                    onChange={(e) => setFormData({...formData, head: e.target.value})}
+                                                    className="w-full input-field"
+                                                >
+                                                    <option value="">Select head...</option>
+                                                    {HEAD_OPTIONS.concat(customHeads).map(head => (
+                                                        <option key={head} value={head}>{head}</option>
+                                                    ))}
+                                                    <option value="__add_new__">➕ Add New Head...</option>
+                                                </select>
+                                                {formData.head === '__add_new__' && (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter new head name"
+                                                        className="w-full input-field mt-2"
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                setCustomHeads([...customHeads, e.target.value.trim()]);
+                                                                setFormData({...formData, head: e.target.value.trim()});
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2">💪 Body</label>
+                                                <select
+                                                    value={formData.body}
+                                                    onChange={(e) => setFormData({...formData, body: e.target.value})}
+                                                    className="w-full input-field"
+                                                >
+                                                    <option value="">Select body...</option>
+                                                    {BODY_OPTIONS.concat(customBodies).map(body => (
+                                                        <option key={body} value={body}>{body}</option>
+                                                    ))}
+                                                    <option value="__add_new__">➕ Add New Body...</option>
+                                                </select>
+                                                {formData.body === '__add_new__' && (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter new body name"
+                                                        className="w-full input-field mt-2"
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                setCustomBodies([...customBodies, e.target.value.trim()]);
+                                                                setFormData({...formData, body: e.target.value.trim()});
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2">💇 Hairstyle Type</label>
+                                                <select
+                                                    value={formData.hairstyleType}
+                                                    onChange={(e) => setFormData({...formData, hairstyleType: e.target.value})}
+                                                    className="w-full input-field"
+                                                >
+                                                    <option value="">Select hairstyle type...</option>
+                                                    {HAIRSTYLE_OPTIONS.concat(customHairstyles).map(style => (
+                                                        <option key={style} value={style}>{style}</option>
+                                                    ))}
+                                                    <option value="__add_new__">➕ Add New Hairstyle Type...</option>
+                                                </select>
+                                                {formData.hairstyleType === '__add_new__' && (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter new hairstyle type"
+                                                        className="w-full input-field mt-2"
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                setCustomHairstyles([...customHairstyles, e.target.value.trim()]);
+                                                                setFormData({...formData, hairstyleType: e.target.value.trim()});
+                                                            }
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-semibold mb-2">🎭 Bakes on Mesh</label>
+                                                <div className="flex gap-4">
+                                                    <label className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="bakesOnMesh"
+                                                            value="Yes"
+                                                            checked={formData.bakesOnMesh === 'Yes'}
+                                                            onChange={(e) => setFormData({...formData, bakesOnMesh: e.target.value})}
+                                                            className="bulk-checkbox"
+                                                        />
+                                                        <span>Yes</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="bakesOnMesh"
+                                                            value="No"
+                                                            checked={formData.bakesOnMesh === 'No'}
+                                                            onChange={(e) => setFormData({...formData, bakesOnMesh: e.target.value})}
+                                                            className="bulk-checkbox"
+                                                        />
+                                                        <span>No</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="bakesOnMesh"
+                                                            value=""
+                                                            checked={formData.bakesOnMesh === ''}
+                                                            onChange={(e) => setFormData({...formData, bakesOnMesh: e.target.value})}
+                                                            className="bulk-checkbox"
+                                                        />
+                                                        <span>Not specified</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {imagePreview && (
+                                        <div>
+                                            <label className="block text-sm font-semibold mb-2">📷 Current Image</label>
+                                            <img src={imagePreview} alt="Preview" className="max-w-full max-h-48 rounded mx-auto" />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">📷 Change Image</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageSelect}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-4 mt-6">
+                                        <button
+                                            type="submit"
+                                            disabled={uploading}
+                                            className="flex-1 sl-orange-btn py-3 rounded-lg disabled:opacity-50"
+                                        >
+                                            {uploading ? '⏳ Uploading...' : '✅ Update Item'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="px-6 bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-lg font-semibold transition"
+                                        >
+                                            ❌ Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* List Manager Modal */}
+                    {showListManager && (
+                        <div className="modal-overlay" onClick={() => setShowListManager(false)}>
+                            <div className="modal-content p-6" onClick={(e) => e.stopPropagation()} style={{maxWidth: '900px'}}>
+                                <h2 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                                    <span>📋</span>
+                                    <span>Manage Custom Lists</span>
+                                </h2>
+                                
+                                {/* Add New List */}
+                                <div className="product-card p-6 mb-6">
+                                    <label className="block text-sm font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                                        <span>✨</span>
+                                        <span>Create New List</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newListName}
+                                            onChange={(e) => setNewListName(e.target.value)}
+                                            placeholder="e.g., Wedding Decor, Halloween Party"
+                                            className="flex-1 input-field"
+                                            onKeyPress={(e) => e.key === 'Enter' && addCustomList()}
+                                        />
+                                        <button
+                                            onClick={addCustomList}
+                                            className="sl-orange-btn px-8 py-3 rounded-lg"
+                                        >
+                                            ➕ Add
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Existing Lists */}
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-lg text-gray-700 flex items-center gap-2">
+                                        <span>📚</span>
+                                        <span>Your Lists ({customLists.length})</span>
+                                    </h3>
+                                    {customLists.length === 0 ? (
+                                        <div className="product-card text-center py-12 text-gray-500">
+                                            <div className="text-6xl mb-4">📝</div>
+                                            <p className="text-lg">No custom lists yet. Create one above!</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                            {customLists.map(list => (
+                                                <div key={list.id} className="product-card p-5">
+                                                    <div className="flex items-center justify-between gap-4 mb-3">
+                                                        <div className="flex items-center gap-3 flex-1">
+                                                            <span className="text-3xl">{list.icon}</span>
+                                                            <input
+                                                                type="text"
+                                                                value={list.name}
+                                                                onChange={(e) => editCustomListName(list.id, e.target.value)}
+                                                                className="flex-1 input-field py-2 px-3 text-lg font-semibold"
+                                                            />
+                                                            <div className="text-center">
+                                                                <div className="text-2xl font-bold" style={{color: '#ffd700'}}>
+                                                                    {items.filter(item => item.customListId === list.id).length}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {items.filter(item => item.customListId === list.id).length === 1 ? 'item' : 'items'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => deleteCustomList(list.id)}
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-lg font-semibold transition flex-shrink-0"
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedCustomList(list.id);
+                                                            setActiveTab('custom');
+                                                            setShowListManager(false);
+                                                        }}
+                                                        className="w-full sl-blue-btn py-3 rounded-lg text-base font-semibold"
+                                                    >
+                                                        👀 View List
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => setShowListManager(false)}
+                                    className="w-full mt-6 bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-lg font-semibold transition text-lg"
+                                >
+                                    ✅ Done
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Bulk Actions Bar */}
+                    {bulkMode && selectedItems.length > 0 && (
+                        <div className="bulk-actions-bar">
+                            <span className="font-bold text-gray-800">{selectedItems.length} selected</span>
+                            <button
+                                onClick={selectAllItems}
+                                className="sl-blue-btn py-2 px-4 rounded text-sm"
+                            >
+                                Select All
+                            </button>
+                            <button
+                                onClick={deselectAll}
+                                className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded font-semibold transition text-sm"
+                            >
+                                Deselect All
+                            </button>
+                            <button
+                                onClick={() => bulkMoveTo(STATUSES.WISHLIST)}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded font-semibold transition text-sm"
+                            >
+                                ⭐ To Wishlist
+                            </button>
+                            <button
+                                onClick={() => bulkMoveTo(STATUSES.SHOPPING)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold transition text-sm"
+                            >
+                                🛒 To Shopping
+                            </button>
+                            <button
+                                onClick={() => bulkMoveTo(STATUSES.SORT)}
+                                className="bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded font-semibold transition text-sm"
+                            >
+                                📦 To Sort
+                            </button>
+                            <button
+                                onClick={() => bulkMoveTo(STATUSES.INVENTORY)}
+                                className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded font-semibold transition text-sm"
+                            >
+                                ✅ To Inventory
+                            </button>
+                            <button
+                                onClick={bulkDelete}
+                                className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded font-semibold transition text-sm"
+                            >
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Dark Mode Toggle */}
+                    <button
+                        onClick={toggleDarkMode}
+                        className="dark-mode-toggle"
+                        title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    >
+                        {darkMode ? '☀️' : '🌙'}
+                    </button>
+
+                    {/* Image Lightbox */}
+                    {lightboxImage && (
+                        <div 
+                            className="modal-overlay" 
+                            onClick={() => setLightboxImage(null)}
+                            style={{ cursor: 'zoom-out' }}
+                        >
+                            <div className="max-w-7xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
+                                <img 
+                                    src={lightboxImage} 
+                                    alt="Full size" 
+                                    className="max-w-full max-h-screen object-contain mx-auto rounded-lg shadow-2xl"
+                                    style={{ cursor: 'zoom-out' }}
+                                    onClick={() => setLightboxImage(null)}
+                                />
+                                <button
+                                    onClick={() => setLightboxImage(null)}
+                                    className="absolute top-4 right-4 bg-white text-gray-800 rounded-full w-12 h-12 flex items-center justify-center text-2xl font-bold hover:bg-gray-200 transition shadow-lg"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
