@@ -957,6 +957,26 @@
                 return () => window.removeEventListener('storage', onStorage);
             }, []);
 
+            // Load items from Firestore when user signs in
+            useEffect(() => {
+                if (authUser && authUser.uid) {
+                    console.log('[Firestore] Loading items for user:', authUser.uid);
+                    const db = firebase.firestore();
+                    const unsubscribe = db.collection('users').doc(authUser.uid).onSnapshot(doc => {
+                        if (doc.exists && doc.data().items) {
+                            console.log('[Firestore] Loaded', doc.data().items.length, 'items');
+                            setItems(doc.data().items);
+                        } else {
+                            console.log('[Firestore] No cloud data, using localStorage');
+                        }
+                    }, err => {
+                        console.error('[Firestore] Load error:', err);
+                    });
+                    
+                    return () => unsubscribe();
+                }
+            }, [authUser]);
+
             const handleSignOut = async () => {
                 // Try to use firebase SDK if available
                 try {
@@ -1128,10 +1148,21 @@
             useEffect(() => {
                 try {
                     localStorage.setItem('sl-tracker-items', JSON.stringify(items));
+                    
+                    // Sync to Firestore if user is signed in
+                    if (authUser && authUser.uid) {
+                        const db = firebase.firestore();
+                        db.collection('users').doc(authUser.uid).set({
+                            items: items,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true })
+                        .then(() => console.log('[Firestore] Items synced'))
+                        .catch(err => console.error('[Firestore] Sync error:', err));
+                    }
                 } catch (error) {
                     console.error('Error saving data:', error);
                 }
-            }, [items]);
+            }, [items, authUser]);
 
             const addCustomList = () => {
                 if (newListName.trim()) {
