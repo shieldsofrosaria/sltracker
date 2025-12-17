@@ -836,6 +836,7 @@
             useEffect(() => {
                 const findAuthUser = async () => {
                     try {
+                        console.log('[Auth Debug] Scanning for auth state...');
                         // 1) scan localStorage for common firebase auth keys
                         for (let i = 0; i < localStorage.length; i++) {
                             const key = localStorage.key(i);
@@ -846,8 +847,10 @@
                                 if (raw) {
                                     try {
                                         const parsed = JSON.parse(raw);
+                                        console.log('[Auth Debug] Found auth key:', key, 'Email:', parsed.email);
                                         if (parsed && (parsed.email || parsed.displayName || parsed.uid)) {
                                             setAuthUser({ email: parsed.email || null, name: parsed.displayName || null, uid: parsed.uid || null });
+                                            console.log('[Auth Debug] Set authUser from localStorage');
                                             return;
                                         }
                                     } catch (e) {
@@ -1468,7 +1471,7 @@
                                 </div>
                             ) : (
                                 <div className="text-sm font-semibold bg-white/10 px-3 py-1 rounded">
-                                    <a href="/" onClick={(e)=>{ /* no-op placeholder; sign-in flow lives elsewhere */ }} className="underline">Not signed in</a>
+                                    <span className="opacity-70">Not signed in</span>
                                 </div>
                             )}
                         </div>
