@@ -995,9 +995,14 @@
                     // Then set up real-time listener for future changes
                     const unsubscribe = db.collection('users').doc(authUser.uid).onSnapshot(doc => {
                         if (doc.exists && doc.data().items) {
-                            console.log('[Firestore] Real-time update:', doc.data().items.length, 'items');
-                            isLoadingFromCloud.current = true;
-                            setItems(doc.data().items);
+                            // Only update if this is a remote change (not our own pending write)
+                            if (!doc.metadata.hasPendingWrites) {
+                                console.log('[Firestore] Real-time update from server:', doc.data().items.length, 'items');
+                                isLoadingFromCloud.current = true;
+                                setItems(doc.data().items);
+                            } else {
+                                console.log('[Firestore] Skipping local write echo');
+                            }
                         }
                     }, err => {
                         console.error('[Firestore] Listener error:', err);
