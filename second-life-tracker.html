@@ -830,6 +830,93 @@
             const [globalSearch, setGlobalSearch] = useState('');
             const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
+            // Authentication UI state: detect firebase auth object in localStorage (works for redirect/compat flows)
+            const [authUser, setAuthUser] = useState(null);
+
+            useEffect(() => {
+                const findAuthUser = () => {
+                    try {
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (!key) continue;
+                            // firebase stores the current user under keys like 'firebase:authUser:<apiKey>:[DEFAULT]'
+                            if (key.startsWith('firebase:authUser:')) {
+                                const raw = localStorage.getItem(key);
+                                if (raw) {
+                                    try {
+                                        const parsed = JSON.parse(raw);
+                                        if (parsed && (parsed.email || parsed.displayName)) {
+                                            setAuthUser({ email: parsed.email, name: parsed.displayName });
+                                            return;
+                                        }
+                                    } catch (e) {
+                                        // ignore parse errors
+                                    }
+                                }
+                            }
+                        }
+                        // no firebase auth entry found
+                        setAuthUser(null);
+                    } catch (err) {
+                        setAuthUser(null);
+                    }
+                };
+
+                findAuthUser();
+
+                // Listen for storage events (sign-in from other tab or redirect)
+                const onStorage = (e) => {
+                    if (!e.key) {
+                        findAuthUser();
+                        return;
+                    }
+                    if (e.key.startsWith('firebase:authUser:')) {
+                        findAuthUser();
+                    }
+                };
+                window.addEventListener('storage', onStorage);
+                return () => window.removeEventListener('storage', onStorage);
+            }, []);
+
+            const handleSignOut = async () => {
+                // Try to use firebase SDK if available
+                try {
+                    if (window.firebase && window.firebase.auth) {
+                        await window.firebase.auth().signOut();
+                    } else if (window.firebaseAuth && window.firebaseAuth.signOut) {
+                        // some globals may expose auth differently
+                        await window.firebaseAuth.signOut();
+                    } else {
+                        // Fallback: remove firebase auth keys from localStorage (local sign-out)
+                        const keysToRemove = [];
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (!key) continue;
+                            if (key.startsWith('firebase:authUser:') || key.startsWith('firebase:authToken:') || key.startsWith('firebase:')) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                        keysToRemove.forEach(k => localStorage.removeItem(k));
+                    }
+                } catch (err) {
+                    console.warn('Sign-out via SDK failed, falling back to local clear');
+                    // continue to fallback
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (!key) continue;
+                        if (key.startsWith('firebase:authUser:') || key.startsWith('firebase:authToken:') || key.startsWith('firebase:')) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+                }
+
+                setAuthUser(null);
+                // reload to ensure UI and any auth-dependent code refreshes
+                try { window.location.reload(); } catch (e) { /* ignore */ }
+            };
+
             useEffect(() => {
                 const loadData = () => {
                     try {
@@ -1327,7 +1414,20 @@
             return (
                 <div className="min-h-screen pb-8">
                     {/* Header */}
-                    <div className="sl-header text-white py-6 px-4 mb-6">
+                    <div className="sl-header text-white py-6 px-4 mb-6" style={{position: 'relative'}}>
+                        <div style={{position: 'absolute', right: 20, top: 18, textAlign: 'right'}}>
+                            {authUser ? (
+                                <div className="text-sm font-semibold bg-white/10 px-3 py-1 rounded flex items-center gap-3">
+                                    <span>Signed in as</span>
+                                    <span className="underline">{authUser.email || authUser.name}</span>
+                                    <button onClick={handleSignOut} className="ml-2 bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-sm">Sign out</button>
+                                </div>
+                            ) : (
+                                <div className="text-sm font-semibold bg-white/10 px-3 py-1 rounded">
+                                    <a href="/" onClick={(e)=>{ /* no-op placeholder; sign-in flow lives elsewhere */ }} className="underline">Not signed in</a>
+                                </div>
+                            )}
+                        </div>
                         <div className="max-w-7xl mx-auto text-center">
                             <h1 
                                 className="text-3xl md:text-4xl font-bold mb-2 flex items-center justify-center gap-3 cursor-pointer hover:opacity-80 transition"
