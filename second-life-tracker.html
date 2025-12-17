@@ -853,6 +853,7 @@
 
             // Authentication UI state: detect firebase auth object in localStorage (works for redirect/compat flows)
             const [authUser, setAuthUser] = useState(null);
+            const isLoadingFromCloud = React.useRef(false);
 
             useEffect(() => {
                 const findAuthUser = async () => {
@@ -967,6 +968,7 @@
                     db.collection('users').doc(authUser.uid).get().then(doc => {
                         if (doc.exists && doc.data().items && doc.data().items.length > 0) {
                             console.log('[Firestore] Found', doc.data().items.length, 'items in cloud, loading...');
+                            isLoadingFromCloud.current = true;
                             setItems(doc.data().items);
                         } else {
                             console.log('[Firestore] No cloud data found');
@@ -994,6 +996,7 @@
                     const unsubscribe = db.collection('users').doc(authUser.uid).onSnapshot(doc => {
                         if (doc.exists && doc.data().items) {
                             console.log('[Firestore] Real-time update:', doc.data().items.length, 'items');
+                            isLoadingFromCloud.current = true;
                             setItems(doc.data().items);
                         }
                     }, err => {
@@ -1176,8 +1179,8 @@
                 try {
                     localStorage.setItem('sl-tracker-items', JSON.stringify(items));
                     
-                    // Sync to Firestore if user is signed in
-                    if (authUser && authUser.uid) {
+                    // Sync to Firestore if user is signed in (but skip if we just loaded from cloud to avoid loop)
+                    if (authUser && authUser.uid && !isLoadingFromCloud.current) {
                         const db = firebase.firestore();
                         db.collection('users').doc(authUser.uid).set({
                             items: items,
@@ -1186,6 +1189,9 @@
                         .then(() => console.log('[Firestore] Items synced'))
                         .catch(err => console.error('[Firestore] Sync error:', err));
                     }
+                    
+                    // Reset the flag after save
+                    isLoadingFromCloud.current = false;
                 } catch (error) {
                     console.error('Error saving data:', error);
                 }
