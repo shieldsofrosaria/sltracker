@@ -2559,20 +2559,19 @@
                                             )) === 1) ? 'Item' : 'Items'}
                                         </div>
                                     </div>
-                                    <div className="stats-card text-center">
-                                        <div className="stat-number" style={{color: '#ffd700'}}>
-                                            {getTotalPrice(
-                                                activeTab === 'wishlist' ? STATUSES.WISHLIST :
-                                                activeTab === 'shopping' ? STATUSES.SHOPPING :
-                                                activeTab === 'sort' ? STATUSES.SORT :
-                                                activeTab === 'custom' ? null :
-                                                STATUSES.INVENTORY
-                                            ) || (activeTab === 'custom' ? getFilteredItems().reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) : 0).toLocaleString()}
+                                    
+                                    {/* L$ Total - Only show on Shopping tab */}
+                                    {activeTab === 'shopping' && (
+                                        <div className="stats-card text-center">
+                                            <div className="stat-number" style={{color: '#ffd700'}}>
+                                                {getTotalPrice(STATUSES.SHOPPING).toLocaleString()}
+                                            </div>
+                                            <div className="stat-label text-gray-600">
+                                                💰 L$ Total
+                                            </div>
                                         </div>
-                                        <div className="stat-label text-gray-600">
-                                            💰 L$ Total
-                                        </div>
-                                    </div>
+                                    )}
+                                    
                                     <div className="stats-card text-center">
                                         <div className="stat-number text-purple-600">
                                             {getItemCount(STATUSES.WISHLIST)}
