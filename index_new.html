@@ -747,22 +747,108 @@
             INVENTORY: '✅ In Inventory - Owned & Sorted'
         };
 
-        const CATEGORIES = [
-            { name: 'Animations', icon: '💃' },
-            { name: 'Body Parts', icon: '👤' },
-            { name: 'Clothing', icon: '👗' },
-            { name: 'Creator Tools', icon: '🛠️' },
-            { name: 'EEP/Windlights', icon: '🌅' },
-            { name: 'Food & Drink', icon: '🍔' },
-            { name: 'Heads', icon: '👤' },
-            { name: 'Home & Garden', icon: '🏡' },
-            { name: 'Photography Tools', icon: '📸' },
-            { name: 'Backdrops', icon: '🎭' },
-            { name: 'Textures / Materials', icon: '🎨' },
-            { name: 'Toys', icon: '🎮' },
-            { name: 'Weapons', icon: '⚔️' },
-            { name: 'Vehicles', icon: '🚗' }
-        ];
+        const CATEGORIES_WITH_SUBCATEGORIES = {
+            'Animations': {
+                icon: '💃',
+                subcategories: [
+                    'Animation HUD',
+                    'Animesh Object',
+                    'AO Animation',
+                    'Dance Animation',
+                    'Emotive Animation',
+                    'Gesture',
+                    'Pose Animation'
+                ]
+            },
+            'Body Parts': {
+                icon: '👤',
+                subcategories: [
+                    'Alpha',
+                    'Deformer',
+                    'Ears',
+                    'Eyes',
+                    'Hair',
+                    'Hands/Feet',
+                    'Head',
+                    'Makeup/Tattoo/Overlay',
+                    'Material/Shine',
+                    'Mesh Body',
+                    'Nails/Claws/Horns',
+                    'Physics',
+                    'Shape',
+                    'Humanoid Skin',
+                    'Furry Skin',
+                    'Tails/Wings/Fur'
+                ]
+            },
+            'Clothing': {
+                icon: '👗',
+                subcategories: [
+                    'Top',
+                    'Bottom',
+                    'Accessory/Jewelry',
+                    'Costume',
+                    'Footwear',
+                    'Wearables',
+                    'Underwear',
+                    'Swimwear'
+                ]
+            },
+            'Creator Tools': {
+                icon: '🛠️',
+                subcategories: [
+                    'Full Perm Mesh',
+                    'Script',
+                    'Shader PSD'
+                ]
+            },
+            'EEP/Windlights': {
+                icon: '🌅',
+                subcategories: []
+            },
+            'Food & Drink': {
+                icon: '🍔',
+                subcategories: []
+            },
+            'Home & Garden': {
+                icon: '🏡',
+                subcategories: [
+                    'Appliance',
+                    'Decor',
+                    'Electronics',
+                    'Furniture',
+                    'Landscaping',
+                    'Lighting',
+                    'Pool/Hot Tub',
+                    'Rug/Carpeting'
+                ]
+            },
+            'Photography Equipment': {
+                icon: '📸',
+                subcategories: [
+                    'Camera HUD',
+                    'Lighting',
+                    'Backdrop',
+                    'Posing Tool'
+                ]
+            },
+            'Recreation & Entertainment': {
+                icon: '🎮',
+                subcategories: [
+                    'Pet',
+                    'Toy',
+                    'Vehicle',
+                    'Weapon',
+                    'Roleplay'
+                ]
+            }
+        };
+
+        // For backward compatibility with old code that expects array
+        const CATEGORIES = Object.keys(CATEGORIES_WITH_SUBCATEGORIES).map(name => ({
+            name: name,
+            icon: CATEGORIES_WITH_SUBCATEGORIES[name].icon
+        }));
 
         const HEAD_OPTIONS = ['Espen', 'Martian Mutt', 'Abaddon'];
         const BODY_OPTIONS = ['eBody Reborn', 'Belleza Jake', 'Anatomy', 'LeL Tae', 'LeL Eon', 'LeL Kaya', 'LeL'];
@@ -803,9 +889,10 @@
                 name: '',
                 store: '',
                 category: '',
-                categories: [], // NEW: multiple categories support
+                categories: [], // DEPRECATED - keeping for backward compatibility
+                categorySubcategoryPairs: [], // NEW: [{category: 'Animations', subcategory: 'Dance Animation'}, ...]
                 subcategory: '',
-                subcategories: [], // NEW: multiple subcategories support
+                subcategories: [], // DEPRECATED
                 status: STATUSES.WISHLIST,
                 tags: '',
                 notes: '',
@@ -1439,6 +1526,7 @@
                     store: '',
                     category: '',
                     categories: [],
+                    categorySubcategoryPairs: [],
                     subcategory: '',
                     subcategories: [],
                     status: defaultStatus,
@@ -1502,6 +1590,7 @@
                     store: item.store,
                     category: item.category,
                     categories: item.categories || [],
+                    categorySubcategoryPairs: item.categorySubcategoryPairs || [],
                     subcategory: item.subcategory || '',
                     subcategories: item.subcategories || [],
                     status: item.status,
@@ -1818,35 +1907,55 @@
                                                         </span>
                                                     </div>
                                                     {item.store && <p className="text-gray-600 mb-2">🏪 {item.store}</p>}
-                                                    {/* Display multiple categories */}
-                                                    {(item.categories && item.categories.length > 0) ? (
-                                                        <div className="mb-2 flex flex-wrap gap-2">
-                                                            {item.categories.map(cat => (
-                                                                <span key={cat} className={`category-badge ${getCategoryClass(cat)}`}>
-                                                                    {getCategoryIcon(cat)} {cat}
-                                                                </span>
-                                                            ))}
+                                                    {/* Display category-subcategory pairs */}
+                                                    {(item.categorySubcategoryPairs && item.categorySubcategoryPairs.length > 0) ? (
+                                                        <div className="mb-2 space-y-1">
+                                                            {item.categorySubcategoryPairs.map((pair, idx) => {
+                                                                const catData = CATEGORIES_WITH_SUBCATEGORIES[pair.category];
+                                                                return (
+                                                                    <div key={idx} className="flex items-center gap-2 flex-wrap">
+                                                                        <span className={`category-badge ${getCategoryClass(pair.category)}`}>
+                                                                            {catData?.icon} {pair.category}
+                                                                        </span>
+                                                                        {pair.subcategory && (
+                                                                            <span className="text-xs text-gray-600">→ {pair.subcategory}</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
-                                                    ) : item.category && (
-                                                        <div className="mb-2">
-                                                            <span className={`category-badge ${getCategoryClass(item.category)}`}>
-                                                                {getCategoryIcon(item.category)} {item.category}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {/* Display multiple subcategories */}
-                                                    {(item.subcategories && item.subcategories.length > 0) ? (
-                                                        <div className="mb-2 flex flex-wrap gap-1">
-                                                            {item.subcategories.map((sub, idx) => (
-                                                                <span key={idx} className="tag-chip text-xs">
-                                                                    {sub}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    ) : item.subcategory && (
-                                                        <div className="mb-2">
-                                                            <span className="text-sm text-gray-600">→ {item.subcategory}</span>
-                                                        </div>
+                                                    ) : (
+                                                        /* Backward compatibility with old single/multiple category format */
+                                                        <>
+                                                            {(item.categories && item.categories.length > 0) ? (
+                                                                <div className="mb-2 flex flex-wrap gap-2">
+                                                                    {item.categories.map(cat => (
+                                                                        <span key={cat} className={`category-badge ${getCategoryClass(cat)}`}>
+                                                                            {getCategoryIcon(cat)} {cat}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ) : item.category && (
+                                                                <div className="mb-2">
+                                                                    <span className={`category-badge ${getCategoryClass(item.category)}`}>
+                                                                        {getCategoryIcon(item.category)} {item.category}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {(item.subcategories && item.subcategories.length > 0) ? (
+                                                                <div className="mb-2 flex flex-wrap gap-1">
+                                                                    {item.subcategories.map((sub, idx) => (
+                                                                        <span key={idx} className="tag-chip text-xs">
+                                                                            {sub}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ) : item.subcategory && (
+                                                                <div className="mb-2">
+                                                                    <span className="text-sm text-gray-600">→ {item.subcategory}</span>
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                     {item.price && activeTab === 'shopping' && (
                                                         <p className="font-bold mt-2" style={{color: '#ffd700'}}>
@@ -1969,61 +2078,74 @@
 
                                         <div>
                                             <label className="block text-sm font-semibold mb-2 text-gray-700">
-                                                📁 Categories (select multiple)
+                                                📁 Categories & Subcategories
                                             </label>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                                {CATEGORIES.map(cat => (
-                                                    <label key={cat.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.categories.includes(cat.name)}
-                                                            onChange={(e) => {
-                                                                const newCategories = e.target.checked
-                                                                    ? [...formData.categories, cat.name]
-                                                                    : formData.categories.filter(c => c !== cat.name);
-                                                                setFormData({...formData, categories: newCategories});
-                                                            }}
-                                                            className="bulk-checkbox"
-                                                        />
-                                                        <span className="text-sm">{cat.icon} {cat.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
+                                            <div className="space-y-4">
+                                                {/* Category Selection Grid */}
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                    {CATEGORIES.map(cat => {
+                                                        const isSelected = formData.categorySubcategoryPairs.some(pair => pair.category === cat.name);
+                                                        return (
+                                                            <label key={cat.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            // Add category with no subcategory selected yet
+                                                                            setFormData({
+                                                                                ...formData,
+                                                                                categorySubcategoryPairs: [
+                                                                                    ...formData.categorySubcategoryPairs,
+                                                                                    { category: cat.name, subcategory: '' }
+                                                                                ]
+                                                                            });
+                                                                        } else {
+                                                                            // Remove all pairs with this category
+                                                                            setFormData({
+                                                                                ...formData,
+                                                                                categorySubcategoryPairs: formData.categorySubcategoryPairs.filter(
+                                                                                    pair => pair.category !== cat.name
+                                                                                )
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                    className="bulk-checkbox"
+                                                                />
+                                                                <span className="text-sm text-gray-800">{cat.icon} {cat.name}</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
 
-                                        {/* Home & Garden Subcategory */}
-                                        {formData.category === 'Home & Garden' && (
-                                            <div>
-                                                <label className="block text-sm font-semibold mb-2 text-gray-700">
-                                                    🏡 Subcategory
-                                                </label>
-                                                <select
-                                                    value={formData.subcategory}
-                                                    onChange={(e) => setFormData({...formData, subcategory: e.target.value})}
-                                                    className="w-full input-field"
-                                                >
-                                                    <option value="">Select type...</option>
-                                                    {HOME_GARDEN_OPTIONS.map(option => (
-                                                        <option key={option} value={option}>{option}</option>
-                                                    ))}
-                                                </select>
+                                                {/* Subcategory Dropdowns for Selected Categories */}
+                                                {formData.categorySubcategoryPairs.map((pair, index) => {
+                                                    const categoryData = CATEGORIES_WITH_SUBCATEGORIES[pair.category];
+                                                    if (!categoryData || categoryData.subcategories.length === 0) return null;
+                                                    
+                                                    return (
+                                                        <div key={`${pair.category}-${index}`} className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                                            <label className="block text-sm font-semibold mb-2 text-purple-900">
+                                                                {categoryData.icon} {pair.category} - Subcategory
+                                                            </label>
+                                                            <select
+                                                                value={pair.subcategory}
+                                                                onChange={(e) => {
+                                                                    const newPairs = [...formData.categorySubcategoryPairs];
+                                                                    newPairs[index].subcategory = e.target.value;
+                                                                    setFormData({...formData, categorySubcategoryPairs: newPairs});
+                                                                }}
+                                                                className="w-full input-field"
+                                                            >
+                                                                <option value="">Select subcategory (optional)</option>
+                                                                {categoryData.subcategories.map(sub => (
+                                                                    <option key={sub} value={sub}>{sub}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        )}
-
-                                        <div>
-                                            <label className="block text-sm font-semibold mb-2 text-gray-700">
-                                                🏷️ Subcategories (comma-separated, optional)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={formData.subcategories.join(', ')}
-                                                onChange={(e) => {
-                                                    const subs = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                                                    setFormData({...formData, subcategories: subs});
-                                                }}
-                                                placeholder="e.g., Pose, Dance, Couples"
-                                                className="w-full input-field"
-                                            />
                                         </div>
 
                                         <div>
@@ -2852,56 +2974,71 @@
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold mb-2">📁 Categories (select multiple)</label>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                            {CATEGORIES.map(cat => (
-                                                <label key={cat.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={formData.categories.includes(cat.name)}
-                                                        onChange={(e) => {
-                                                            const newCategories = e.target.checked
-                                                                ? [...formData.categories, cat.name]
-                                                                : formData.categories.filter(c => c !== cat.name);
-                                                            setFormData({...formData, categories: newCategories});
-                                                        }}
-                                                        className="bulk-checkbox"
-                                                    />
-                                                    <span className="text-sm">{cat.icon} {cat.name}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
+                                        <label className="block text-sm font-semibold mb-2">📁 Categories & Subcategories</label>
+                                        <div className="space-y-4">
+                                            {/* Category Selection Grid */}
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                {CATEGORIES.map(cat => {
+                                                    const isSelected = formData.categorySubcategoryPairs.some(pair => pair.category === cat.name);
+                                                    return (
+                                                        <label key={cat.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded transition">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            categorySubcategoryPairs: [
+                                                                                ...formData.categorySubcategoryPairs,
+                                                                                { category: cat.name, subcategory: '' }
+                                                                            ]
+                                                                        });
+                                                                    } else {
+                                                                        setFormData({
+                                                                            ...formData,
+                                                                            categorySubcategoryPairs: formData.categorySubcategoryPairs.filter(
+                                                                                pair => pair.category !== cat.name
+                                                                            )
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                className="bulk-checkbox"
+                                                            />
+                                                            <span className="text-sm text-gray-800">{cat.icon} {cat.name}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
 
-                                    {/* Home & Garden Subcategory */}
-                                    {formData.category === 'Home & Garden' && (
-                                        <div>
-                                            <label className="block text-sm font-semibold mb-2">🏡 Subcategory</label>
-                                            <select
-                                                value={formData.subcategory}
-                                                onChange={(e) => setFormData({...formData, subcategory: e.target.value})}
-                                                className="w-full input-field"
-                                            >
-                                                <option value="">Select type...</option>
-                                                {HOME_GARDEN_OPTIONS.map(option => (
-                                                    <option key={option} value={option}>{option}</option>
-                                                ))}
-                                            </select>
+                                            {/* Subcategory Dropdowns for Selected Categories */}
+                                            {formData.categorySubcategoryPairs.map((pair, index) => {
+                                                const categoryData = CATEGORIES_WITH_SUBCATEGORIES[pair.category];
+                                                if (!categoryData || categoryData.subcategories.length === 0) return null;
+                                                
+                                                return (
+                                                    <div key={`${pair.category}-${index}`} className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                                        <label className="block text-sm font-semibold mb-2 text-purple-900">
+                                                            {categoryData.icon} {pair.category} - Subcategory
+                                                        </label>
+                                                        <select
+                                                            value={pair.subcategory}
+                                                            onChange={(e) => {
+                                                                const newPairs = [...formData.categorySubcategoryPairs];
+                                                                newPairs[index].subcategory = e.target.value;
+                                                                setFormData({...formData, categorySubcategoryPairs: newPairs});
+                                                            }}
+                                                            className="w-full input-field"
+                                                        >
+                                                            <option value="">Select subcategory (optional)</option>
+                                                            {categoryData.subcategories.map(sub => (
+                                                                <option key={sub} value={sub}>{sub}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-2">🏷️ Subcategories (comma-separated, optional)</label>
-                                        <input
-                                            type="text"
-                                            value={formData.subcategories.join(', ')}
-                                            onChange={(e) => {
-                                                const subs = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                                                setFormData({...formData, subcategories: subs});
-                                            }}
-                                            placeholder="e.g., Pose, Dance, Couples"
-                                            className="w-full input-field"
-                                        />
                                     </div>
 
                                     <div>
